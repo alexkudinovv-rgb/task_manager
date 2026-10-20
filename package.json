@@ -2,11 +2,14 @@
   "name": "car-city-tasks",
   "private": true,
   "workspaces": [
+    "packages/*",
     "apps/*"
   ],
   "scripts": {
     "dev": "npm run dev -w apps/web",
+    "dev:server": "npm run dev -w apps/server",
     "build": "npm run build -w apps/web",
-    "typecheck": "npm run typecheck -w apps/web"
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
   }
 }

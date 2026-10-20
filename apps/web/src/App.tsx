@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api, type Workspace } from './api'
 import { toIsoDate } from './dates'
-import type { Task } from './domain'
+import type { Task } from '@car-city/shared'
 import { BoardView } from './components/BoardView'
 import { ListView } from './components/ListView'
 import { Sidebar } from './components/Sidebar'

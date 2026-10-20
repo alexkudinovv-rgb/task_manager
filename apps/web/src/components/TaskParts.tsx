@@ -1,5 +1,5 @@
 import { formatDue } from '../dates'
-import { initials, isOverdue, type Department, type Status, type Task, type User } from '../domain'
+import { initials, isOverdue, type Department, type Status, type Task, type User } from '@car-city/shared'
 
 export interface Lookup {
   today: string

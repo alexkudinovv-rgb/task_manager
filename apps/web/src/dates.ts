@@ -1,4 +1,4 @@
-import type { Task } from './domain'
+import type { Task } from '@car-city/shared'
 
 const MONTHS = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек']
 const DAY_MS = 86_400_000

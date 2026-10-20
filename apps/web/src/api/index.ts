@@ -1,4 +1,4 @@
-import type { Department, Status, Task, User } from '../domain'
+import type { Department, Status, Task, User } from '@car-city/shared'
 import { mockApi } from './mock'
 
 export interface Workspace {

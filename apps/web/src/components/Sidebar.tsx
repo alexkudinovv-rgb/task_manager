@@ -1,4 +1,4 @@
-import type { Department } from '../domain'
+import type { Department } from '@car-city/shared'
 import { ChatIcon } from './TaskParts'
 
 interface Props {

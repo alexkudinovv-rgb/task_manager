@@ -1,5 +1,5 @@
 import { shiftIsoDate, toIsoDate } from '../dates'
-import type { Department, Status, Task, User } from '../domain'
+import type { Department, Status, Task, User } from '@car-city/shared'
 import type { TaskApi } from './index'
 
 // Fictional people and tasks from the Claude Design variants. No real data on the test site.

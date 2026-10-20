@@ -1,4 +1,4 @@
-import type { Status, Task } from '../domain'
+import type { Status, Task } from '@car-city/shared'
 import { Avatar, CalendarIcon, ChatIcon, Flag, SubtaskBar, resolveTask, type Lookup } from './TaskParts'
 
 interface Props {

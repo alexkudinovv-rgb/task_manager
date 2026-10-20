@@ -1,5 +1,5 @@
 import { plural } from '../dates'
-import type { Department, Task } from '../domain'
+import type { Department, Task } from '@car-city/shared'
 import { Avatar, SubtaskBar, resolveTask, type Lookup } from './TaskParts'
 
 interface Props {
