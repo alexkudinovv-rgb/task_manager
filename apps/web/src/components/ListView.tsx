@@ -1,4 +1,4 @@
-import type { DirectoryItem } from '../api'
+import type { DirectoryItem } from '@car-city/shared/model'
 import { plural } from '../dates'
 import { fullName, type TaskView } from '../workspace'
 import { Avatar, OpenTitle, ProgressBar, StatusTag, TaskFlags } from './TaskParts'

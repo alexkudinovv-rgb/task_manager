@@ -426,6 +426,11 @@ describe('ownerNotice', () => {
     task_started: null,
     due_change_decided: null,
     due_reminder: null,
+    task_updated: null,
+    coexecutors_changed: null,
+    checklist_item_added: null,
+    checklist_item_updated: null,
+    checklist_item_removed: null,
   }
 
   it.each(TASK_EVENTS)('%s by a director', (event) => {

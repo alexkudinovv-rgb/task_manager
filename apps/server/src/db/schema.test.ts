@@ -55,6 +55,8 @@ describe.skipIf(!DATABASE_URL)('database schema (real Postgres)', () => {
   }, 60_000)
 
   afterAll(async () => {
+    // Expected during teardown: DROP ... WITH (FORCE) may kill clients that are still closing.
+    handle?.pool.on('error', () => {})
     await handle?.close()
     if (admin) {
       await admin.query(`DROP DATABASE IF EXISTS ${dbName} WITH (FORCE)`)

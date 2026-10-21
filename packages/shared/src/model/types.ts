@@ -72,5 +72,11 @@ export const TASK_EVENTS = [
   'due_reminder',
   'hot_set',
   'task_overdue',
+  // History only: written by the server, never notify anyone.
+  'task_updated',
+  'coexecutors_changed',
+  'checklist_item_added',
+  'checklist_item_updated',
+  'checklist_item_removed',
 ] as const
 export type TaskEvent = (typeof TASK_EVENTS)[number]

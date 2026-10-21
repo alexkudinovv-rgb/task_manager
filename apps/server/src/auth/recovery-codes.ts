@@ -4,6 +4,7 @@ import { createHash, randomInt, timingSafeEqual } from 'node:crypto'
 export const RECOVERY_CODE_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'
 export const RECOVERY_CODE_COUNT = 10
 const GROUP_LENGTH = 4
+const GROUP_COUNT = 4
 
 function randomGroup(): string {
   let group = ''
@@ -15,8 +16,9 @@ export function normalizeRecoveryCode(input: string): string {
   return input.replace(/[\s-]/g, '').toUpperCase()
 }
 
-// Codes are random (40 bits each), single-use and only replace the second factor (the password is
-// still required), so a fast SHA-256 is fine here, unlike for passwords, which need argon2.
+// Codes are random (80 bits each — too many to brute-force from a leaked hash), single-use and only
+// replace the second factor (the password is still required), so a fast SHA-256 is fine here,
+// unlike for passwords, which need argon2.
 export function hashRecoveryCode(code: string): string {
   return createHash('sha256').update(normalizeRecoveryCode(code)).digest('hex')
 }
@@ -24,7 +26,7 @@ export function hashRecoveryCode(code: string): string {
 // Returns the plain codes (shown to the user once) and their hashes (the only thing stored).
 export function generateRecoveryCodes(count = RECOVERY_CODE_COUNT): { codes: string[], hashes: string[] } {
   const codes = new Set<string>()
-  while (codes.size < count) codes.add(`${randomGroup()}-${randomGroup()}`)
+  while (codes.size < count) codes.add(Array.from({ length: GROUP_COUNT }, randomGroup).join('-'))
   const list = [...codes]
   return { codes: list, hashes: list.map(hashRecoveryCode) }
 }

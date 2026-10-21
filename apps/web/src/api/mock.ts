@@ -1,50 +1,58 @@
-import { checkHotLimit, type Priority, type Task, type TaskStatus } from '@car-city/shared/model'
+import {
+  STARTER_POSITIONS,
+  STARTER_UNITS,
+  checkHotLimit,
+  type DirectoryItem,
+  type Priority,
+  type Task,
+  type TaskStatus,
+  type UserDto,
+} from '@car-city/shared/model'
 import { moscowToday, shiftIsoDate } from '../dates'
-import type { DirectoryItem, TaskApi, User } from './index'
+import type { TaskApi } from './index'
 
 // Fictional people and tasks. No real data on the test site.
 
-const positions: DirectoryItem[] = [
-  { id: 'ops-director', name: 'Операционный директор' },
-  { id: 'it-director', name: 'Директор ИТ' },
-  { id: 'chief-accountant', name: 'Главный бухгалтер' },
-  { id: 'hr-director', name: 'HR-директор' },
-  { id: 'marketing-director', name: 'Директор по маркетингу' },
-  { id: 'rent-head', name: 'Руководитель проката' },
-  { id: 'taxi-head', name: 'Руководитель таксопарка' },
-  { id: 'buyout-head', name: 'Руководитель выкупа' },
-  { id: 'tech-head', name: 'Руководитель технического отдела' },
-]
+type PositionName = (typeof STARTER_POSITIONS)[number]
+type UnitName = (typeof STARTER_UNITS)[number]
 
-const units: DirectoryItem[] = [
-  { id: 'rent', name: 'Прокат' },
-  { id: 'taxi', name: 'Таксопарк' },
-  { id: 'buyout', name: 'Выкуп' },
-  { id: 'tech', name: 'Технический отдел' },
-  { id: 'marketing', name: 'Маркетинг' },
-  { id: 'it', name: 'ИТ' },
-  { id: 'accounting', name: 'Бухгалтерия' },
-  { id: 'hr', name: 'HR' },
-  { id: 'ops', name: 'Операционное управление' },
-]
+const positions: DirectoryItem[] = STARTER_POSITIONS.map((name, i) => ({ id: `position-${i + 1}`, name }))
+const units: DirectoryItem[] = STARTER_UNITS.map((name, i) => ({ id: `unit-${i + 1}`, name }))
 
-const director = (id: string, firstName: string, lastName: string, positionId: string, unitId: string): User => ({
-  id,
+const idOf = (items: DirectoryItem[], name: string) => items.find((item) => item.name === name)!.id
+
+const director = (login: string, firstName: string, lastName: string, position: PositionName, unit: UnitName): UserDto => ({
+  id: login,
+  login,
   firstName,
   lastName,
   role: 'director',
-  positionId,
-  unitId,
+  positionId: idOf(positions, position),
+  unitId: idOf(units, unit),
+  isAdmin: false,
+  disabled: false,
 })
 
-const users: User[] = [
-  { id: 'owner', firstName: 'Собственник', lastName: '', role: 'owner', positionId: null, unitId: null },
-  director('belova', 'Анна', 'Белова', 'rent-head', 'rent'),
-  director('kovalev', 'Илья', 'Ковалёв', 'taxi-head', 'taxi'),
-  director('morozov', 'Дмитрий', 'Морозов', 'buyout-head', 'buyout'),
-  director('zaitseva', 'Ольга', 'Зайцева', 'marketing-director', 'marketing'),
-  director('lebedev', 'Сергей', 'Лебедев', 'tech-head', 'tech'),
-  director('orlova', 'Марина', 'Орлова', 'hr-director', 'hr'),
+const owner: UserDto = {
+  id: 'owner',
+  login: 'owner',
+  firstName: 'Собственник',
+  lastName: '',
+  role: 'owner',
+  positionId: null,
+  unitId: null,
+  isAdmin: true,
+  disabled: false,
+}
+
+const users: UserDto[] = [
+  owner,
+  director('belova', 'Анна', 'Белова', 'Руководитель проката', 'Прокат'),
+  director('kovalev', 'Илья', 'Ковалёв', 'Руководитель таксопарка', 'Таксопарк'),
+  director('morozov', 'Дмитрий', 'Морозов', 'Руководитель выкупа', 'Выкуп'),
+  director('zaitseva', 'Ольга', 'Зайцева', 'Директор по маркетингу', 'Маркетинг'),
+  director('lebedev', 'Сергей', 'Лебедев', 'Руководитель технического отдела', 'Технический отдел'),
+  director('orlova', 'Марина', 'Орлова', 'HR-директор', 'HR'),
 ]
 
 interface Seed {
@@ -342,6 +350,6 @@ export const mockApi: TaskApi = {
     const today = moscowToday()
     const tasks = seeds.map((seed) => buildTask(seed, today))
     if (import.meta.env.DEV) assertHotLimit(tasks)
-    return { users, positions, units, tasks }
+    return { me: owner, users, positions, units, tasks }
   },
 }

@@ -51,7 +51,7 @@ describe('serving the built web app', () => {
   it('keeps unknown API paths as JSON 404', async () => {
     const response = await web.inject({ method: 'GET', url: '/api/nope' })
     expect(response.statusCode).toBe(404)
-    expect(response.json()).toEqual({ error: 'Not Found' })
+    expect(response.json()).toEqual({ error: 'not_found' })
   })
 })
 

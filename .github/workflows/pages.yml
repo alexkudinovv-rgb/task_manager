@@ -24,9 +24,11 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      # The test site has no server: build the web app in demo mode on mock data.
       - run: npm run build
         env:
           BASE_PATH: /${{ github.event.repository.name }}/
+          VITE_DEMO: '1'
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

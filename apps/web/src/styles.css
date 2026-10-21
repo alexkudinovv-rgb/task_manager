@@ -895,7 +895,557 @@ button {
   color: var(--text-faint);
 }
 
+.panel-body {
+  /* Clicks inside the sheet never hit the dialog itself, so only the backdrop closes it. */
+  min-height: 100%;
+}
+
+.panel-subtasks li {
+  position: relative;
+}
+
+.panel-parent {
+  align-self: flex-start;
+  margin-bottom: -8px;
+}
+
+/* Buttons and chips beyond the board */
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+.btn-sm {
+  height: 36px;
+  padding: 0 14px;
+  font-size: 14px;
+}
+
+.btn-block {
+  justify-content: center;
+  width: 100%;
+}
+
+.chip-accent {
+  background: var(--signal);
+  box-shadow: none;
+}
+
+.chip-danger {
+  color: var(--danger);
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-color: var(--signal);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.icon-button {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-faint);
+}
+
+.icon-button:hover:not(:disabled) {
+  background: var(--surface-2);
+  color: var(--danger);
+}
+
+.mono-inline {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+/* Forms */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.field-label {
+  padding: 0;
+  font: 500 11px/1.2 var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.field-hint {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--ink);
+  font: inherit;
+}
+
+.input:focus {
+  outline: none;
+  background: #fffbea;
+  box-shadow: inset 0 0 0 1px var(--signal);
+}
+
+.input:disabled {
+  color: var(--text);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.textarea {
+  padding: 10px 14px;
+  resize: vertical;
+}
+
+.mono-input {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.code-input {
+  font: 500 24px/1 var(--font-mono);
+  letter-spacing: 0.35em;
+  text-align: center;
+}
+
+.checks {
+  gap: 4px;
+}
+
+.checks .field-label {
+  margin-bottom: 4px;
+}
+
+.check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 28px;
+  color: var(--ink);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.check-row input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin: 1px 0 0;
+  accent-color: var(--graphite);
+}
+
+.form-actions,
+.form-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+}
+
+.form-notice {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: #fff4cc;
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.inline-form {
+  display: flex;
+  gap: 8px;
+}
+
+.error-note {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: #fbe9e7;
+  color: var(--danger);
+  font-size: 14px;
+}
+
+.error-note p,
+.error-note ul {
+  margin: 0;
+}
+
+.error-note ul {
+  padding-left: 18px;
+}
+
+.form-card,
+.invite-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 24px;
+}
+
+.form-card-title,
+.invite-card h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.invite-card {
+  box-shadow: inset 0 0 0 2px var(--signal), var(--shadow-card);
+}
+
+.invite-card p {
+  margin: 0;
+}
+
+.invite-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.secret {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.secret code {
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  font: 500 14px/1.4 var(--font-mono);
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  word-break: break-all;
+}
+
+.secret .input {
+  flex: 1 1 240px;
+}
+
+/* Task panel: live sections */
+
+.checklist,
+.history {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.checklist li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.checklist .is-done {
+  color: var(--text);
+  text-decoration: line-through;
+}
+
+.history li {
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.due-request {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: var(--ink);
+}
+
+/* Sidebar: sections and the signed-in user */
+
+button.sidebar-link {
+  width: 100%;
+}
+
+.sidebar-user {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-user-name {
+  display: flex;
+  flex-direction: column;
+  padding: 0 14px 8px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Users admin */
+
+.users {
+  overflow: hidden;
+}
+
+.user-row {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: start;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--line);
+}
+
+.user-row:last-child {
+  border-bottom: 0;
+}
+
+.user-row.is-disabled .user-row-name {
+  color: var(--text);
+}
+
+.user-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.user-row-name {
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.user-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  max-width: 420px;
+}
+
+.user-row-actions .chip {
+  height: 34px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+/* Login and invite */
+
+.auth {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 24px 16px;
+}
+
+.auth-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: min(440px, 100%);
+  padding: 32px;
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.auth-brand > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.auth-brand-name {
+  font: 400 15px/1.3 var(--font-display);
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.auth-brand-sub {
+  font-size: 10px;
+  color: var(--text);
+}
+
+.auth-title {
+  margin: 0;
+  font: 300 30px/1.1 var(--font-display);
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+
+.auth-lead {
+  margin: -6px 0 0;
+}
+
+.auth-step {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.auth-step p {
+  margin: 0;
+}
+
+.qr {
+  align-self: center;
+  width: 208px;
+  height: 208px;
+  border-radius: 16px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.qr img {
+  display: block;
+}
+
+.codes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.codes li {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 14px;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
+.app-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.app-message p {
+  margin: 0;
+}
+
 /* Phones: sidebar becomes a top bar, list rows stack. */
+
+@media (max-width: 900px) {
+  .sidebar-user {
+    flex-direction: row;
+    flex: none;
+    margin-left: auto;
+  }
+
+  .sidebar-user .sidebar-divider,
+  .sidebar-user-name {
+    display: none;
+  }
+
+  .sidebar-user .sidebar-sublink {
+    width: auto;
+    white-space: nowrap;
+  }
+
+  .user-row {
+    grid-template-columns: 28px minmax(0, 1fr);
+    padding: 14px 16px;
+  }
+
+  .user-row-actions {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+
+  .form-card,
+  .invite-card {
+    padding: 18px;
+  }
+}
+
+@media (max-width: 520px) {
+  .field-row {
+    grid-template-columns: 1fr;
+  }
+
+  .auth {
+    padding: 12px;
+    place-items: start center;
+  }
+
+  .auth-card {
+    padding: 22px 18px;
+  }
+
+  .auth-title {
+    font-size: 26px;
+  }
+}
 
 @media (max-width: 900px) {
   .app {

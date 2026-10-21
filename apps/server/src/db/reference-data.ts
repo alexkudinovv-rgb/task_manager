@@ -1,3 +1,4 @@
+import { STARTER_POSITIONS, STARTER_UNITS } from '@car-city/shared/model'
 import type { Db } from './client'
 import {
   notificationDefaults,
@@ -7,29 +8,8 @@ import {
   type NotificationMode,
 } from './schema'
 
-export const STARTER_POSITIONS = [
-  'Операционный директор',
-  'Директор ИТ',
-  'Главный бухгалтер',
-  'HR-директор',
-  'Директор по маркетингу',
-  'Руководитель проката',
-  'Руководитель таксопарка',
-  'Руководитель выкупа',
-  'Руководитель технического отдела',
-] as const
-
-export const STARTER_UNITS = [
-  'Прокат',
-  'Таксопарк',
-  'Выкуп',
-  'Технический отдел',
-  'Маркетинг',
-  'ИТ',
-  'Бухгалтерия',
-  'HR',
-  'Операционное управление',
-] as const
+// Single source of the starter lists lives in the shared package.
+export { STARTER_POSITIONS, STARTER_UNITS }
 
 /** Notification events and how they are delivered by default (in-app + push). */
 export const DEFAULT_EVENT_MODES = {

@@ -3,12 +3,12 @@ import { describe, expect, it } from 'vitest'
 import { findMatchingRecoveryCode, generateRecoveryCodes, hashRecoveryCode, normalizeRecoveryCode } from './recovery-codes'
 
 describe('generateRecoveryCodes', () => {
-  it('produces 10 XXXX-XXXX codes from the unambiguous alphabet', () => {
+  it('produces 10 XXXX-XXXX-XXXX-XXXX codes from the unambiguous alphabet', () => {
     const { codes, hashes } = generateRecoveryCodes()
     expect(codes).toHaveLength(10)
     expect(hashes).toHaveLength(10)
     for (const code of codes) {
-      expect(code).toMatch(/^[2-9A-HJ-NP-Z]{4}-[2-9A-HJ-NP-Z]{4}$/)
+      expect(code).toMatch(/^[2-9A-HJ-NP-Z]{4}(-[2-9A-HJ-NP-Z]{4}){3}$/)
       expect(code).not.toMatch(/[01OI]/)
     }
   })
@@ -23,7 +23,7 @@ describe('generateRecoveryCodes', () => {
     const { codes, hashes } = generateRecoveryCodes(3)
     codes.forEach((code, i) => {
       expect(hashes[i]).toMatch(/^[0-9a-f]{64}$/)
-      expect(hashes[i]).toBe(createHash('sha256').update(code.replace('-', '')).digest('hex'))
+      expect(hashes[i]).toBe(createHash('sha256').update(code.replaceAll('-', '')).digest('hex'))
     })
   })
 })

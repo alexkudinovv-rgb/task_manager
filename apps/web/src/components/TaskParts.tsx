@@ -1,5 +1,4 @@
-import { PRIORITY_LABELS, TASK_STATUS_LABELS, type Progress, type TaskStatus } from '@car-city/shared/model'
-import type { User } from '../api'
+import { PRIORITY_LABELS, TASK_STATUS_LABELS, type Progress, type TaskStatus, type UserDto } from '@car-city/shared/model'
 import { fullName, initials, type TaskView } from '../workspace'
 
 /** Statuses reuse the vehicle-class pastels from the guide. */
@@ -31,7 +30,7 @@ export function TaskFlags({ view, withCancelled = true }: { view: TaskView; with
   )
 }
 
-export function Avatar({ user, small = false }: { user: User; small?: boolean }) {
+export function Avatar({ user, small = false }: { user: UserDto; small?: boolean }) {
   return (
     <span className={`avatar${small ? ' avatar-sm' : ''}`} title={fullName(user)}>
       {initials(user)}

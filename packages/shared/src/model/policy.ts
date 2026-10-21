@@ -173,6 +173,11 @@ const OWNER_NOTICE: Record<TaskEvent, OwnerNotice | null> = {
   // Addressed to the responsible, not the owner.
   due_change_decided: null,
   due_reminder: null,
+  task_updated: null,
+  coexecutors_changed: null,
+  checklist_item_added: null,
+  checklist_item_updated: null,
+  checklist_item_removed: null,
 }
 
 /** How the owner hears about an event; `actor === null` is a system event. */

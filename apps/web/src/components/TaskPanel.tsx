@@ -5,43 +5,34 @@ import {
   checkHotLimit,
   checkTransition,
   type AllowedActions,
+  type UserDto,
 } from '@car-city/shared/model'
-import type { User } from '../api'
+import { DEMO } from '../api'
 import { formatDay } from '../dates'
 import { canViewerSee, findUser, fullName, visibilityContext, type Lookup, type TaskView } from '../workspace'
+import { LiveTask } from './LiveTask'
 import { StatusTag, TaskFlags } from './TaskParts'
 
 interface Props {
   view: TaskView
-  viewer: User
+  viewer: UserDto
   lookup: Lookup
   onClose: () => void
+  /** Switch the panel to another task: a subtask, the parent, a conflicting hot task. */
+  onOpenTask: (id: string) => void
+  /** Reload the workspace after a change (real mode). */
+  onChanged: () => Promise<void>
 }
 
-// decideDueRequest is left out: the demo has no pending due change requests.
-const ACTION_LABELS: [keyof AllowedActions, string][] = [
-  ['start', 'Взять в работу'],
-  ['complete', 'Завершить'],
-  ['cancel', 'Отменить'],
-  ['reopen', 'Вернуть в работу'],
-  ['edit', 'Изменить'],
-  ['changeDue', 'Изменить срок'],
-  ['requestDueChange', 'Попросить перенос срока'],
-  ['setPriority', 'Сменить приоритет'],
-  ['setHot', 'Поставить «Горит»'],
-  ['manageCoexecutors', 'Соисполнители'],
-  ['addSubtask', 'Добавить подзадачу'],
-  ['comment', 'Написать в чат'],
-]
-
-export function TaskPanel({ view, viewer, lookup, onClose }: Props) {
+export function TaskPanel({ view, viewer, lookup, onClose, onOpenTask, onChanged }: Props) {
   const dialog = useRef<HTMLDialogElement>(null)
   useEffect(() => {
     dialog.current?.showModal()
   }, [])
 
   const { task } = view
-  const subtasks = (lookup.subtasksByParent.get(task.id) ?? []).filter((s) => canViewerSee(viewer, s, lookup))
+  const subtasks = (lookup.subtasksByParent.get(task.id) ?? []).filter((s) => !DEMO || canViewerSee(viewer, s, lookup))
+  const parent = task.parentId ? lookup.tasks.get(task.parentId) : undefined
   const responsiblePosition = view.responsible.positionId ? lookup.positions.get(view.responsible.positionId)?.name : null
 
   return (
@@ -63,6 +54,11 @@ export function TaskPanel({ view, viewer, lookup, onClose }: Props) {
           </button>
         </div>
 
+        {parent && (
+          <button type="button" className="link-button panel-parent" onClick={() => onOpenTask(parent.id)}>
+            ← Подзадача в «{parent.title}»
+          </button>
+        )}
         <h2 id="panel-title" className="panel-title">
           {task.title}
         </h2>
@@ -95,7 +91,9 @@ export function TaskPanel({ view, viewer, lookup, onClose }: Props) {
             <ul className="panel-subtasks">
               {subtasks.map((s) => (
                 <li key={s.id}>
-                  <span className={`task-title${s.status === 'done' ? ' is-finished' : ''}`}>{s.title}</span>
+                  <button type="button" className={`task-open task-title${s.status === 'done' ? ' is-finished' : ''}`} onClick={() => onOpenTask(s.id)}>
+                    {s.title}
+                  </button>
                   <span className="muted">
                     {fullName(findUser(lookup, s.responsibleId))} · {TASK_STATUS_LABELS[s.status]}
                   </span>
@@ -105,7 +103,11 @@ export function TaskPanel({ view, viewer, lookup, onClose }: Props) {
           </section>
         )}
 
-        <Actions view={view} viewer={viewer} lookup={lookup} />
+        {DEMO ? (
+          <DemoActions view={view} viewer={viewer} lookup={lookup} />
+        ) : (
+          <LiveTask view={view} viewer={viewer} lookup={lookup} onChanged={onChanged} onOpenTask={onOpenTask} />
+        )}
       </div>
     </dialog>
   )
@@ -120,8 +122,24 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
-/** What the policy lets the current viewer do; shown, not wired. */
-function Actions({ view, viewer, lookup }: { view: TaskView; viewer: User; lookup: Lookup }) {
+// decideDueRequest is left out: the demo has no pending due change requests.
+const ACTION_LABELS: [keyof AllowedActions, string][] = [
+  ['start', 'Взять в работу'],
+  ['complete', 'Завершить'],
+  ['cancel', 'Отменить'],
+  ['reopen', 'Вернуть в работу'],
+  ['edit', 'Изменить'],
+  ['changeDue', 'Изменить срок'],
+  ['requestDueChange', 'Попросить перенос срока'],
+  ['setPriority', 'Сменить приоритет'],
+  ['setHot', 'Поставить «Горит»'],
+  ['manageCoexecutors', 'Соисполнители'],
+  ['addSubtask', 'Добавить подзадачу'],
+  ['comment', 'Написать в чат'],
+]
+
+/** Demo: what the policy lets the chosen viewer do; shown, not wired. */
+function DemoActions({ view, viewer, lookup }: { view: TaskView; viewer: UserDto; lookup: Lookup }) {
   const { task } = view
   const allowed = allowedActions(viewer, task, visibilityContext(task, lookup))
   const actions = ACTION_LABELS.filter(([key]) => allowed[key]).map(([key, label]) =>

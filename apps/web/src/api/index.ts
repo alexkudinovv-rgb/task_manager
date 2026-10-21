@@ -1,32 +1,14 @@
-import type { Role, Task } from '@car-city/shared/model'
+import type { WorkspaceDto } from '@car-city/shared/model'
 import { mockApi } from './mock'
+import { serverApi } from './server'
 
-/** Editable directory entry (positions and units are lists in the settings). */
-export interface DirectoryItem {
-  id: string
-  name: string
-}
+/** GitHub Pages build: mock data, no login, actions shown but not saved. */
+export const DEMO = import.meta.env.VITE_DEMO === '1'
 
-export interface User {
-  id: string
-  firstName: string
-  lastName: string
-  role: Role
-  positionId: string | null
-  unitId: string | null
-}
-
-export interface Workspace {
-  users: User[]
-  positions: DirectoryItem[]
-  units: DirectoryItem[]
-  /** Top-level tasks and their subtasks (`parentId` set). */
-  tasks: Task[]
-}
-
-/** The UI talks only to this contract; the HTTP client replaces the mock once the server exists. */
+/** What both the demo and the real app read; the rest of the routes live on serverApi. */
 export interface TaskApi {
-  loadWorkspace(): Promise<Workspace>
+  loadWorkspace(): Promise<WorkspaceDto>
 }
 
-export const api: TaskApi = mockApi
+export const api: TaskApi = DEMO ? mockApi : serverApi
+export { serverApi }
