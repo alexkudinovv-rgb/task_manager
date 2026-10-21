@@ -249,3 +249,97 @@ export const DecideDueRequestInput = z.object({
   comment: z.string().trim().max(1000).optional(),
 })
 export type DecideDueRequestInput = z.infer<typeof DecideDueRequestInput>
+
+/*
+ * Stage 3–4 additions (all under /api, session required).
+ *
+ * Chats — `chatKey` is 'general' or a task id. Task chats follow task visibility; done tasks are read-only.
+ *   GET    /api/chats/:chatKey/messages?before=<ISO>&limit=<1..100> -> MessagesPage (newest first)
+ *   POST   /api/chats/:chatKey/messages  MessageInput      -> MessageDto
+ *   PATCH  /api/messages/:id             MessageInput      -> MessageDto  (author, within 15 min)
+ *   DELETE /api/messages/:id                               -> 204         (author, within 15 min; soft delete)
+ *   POST   /api/chats/:chatKey/read                        -> 204         (marks everything up to now as read)
+ *   GET    /api/chats/unread                               -> UnreadDto
+ *   GET    /api/ws  (WebSocket, session cookie)            -> server pushes WsEvent JSON frames
+ *
+ * Attachments (task files; ≤ 25 MB each; visibility = task visibility)
+ *   GET    /api/tasks/:id/attachments                      -> AttachmentDto[]
+ *   POST   /api/tasks/:id/attachments  multipart, field `file` -> AttachmentDto
+ *   GET    /api/attachments/:id                            -> the file (inline for images/PDF, download otherwise)
+ *   DELETE /api/attachments/:id                            -> 204 (uploader, task author or owner; task not done)
+ *
+ * Web push (PWA)
+ *   GET    /api/push/public-key                            -> PushPublicKeyResponse
+ *   POST   /api/push/subscriptions  PushSubscriptionInput  -> 204 (upsert by endpoint for the current user)
+ *   DELETE /api/push/subscriptions  PushUnsubscribeInput   -> 204
+ *   POST   /api/push/test                                  -> 204 (sends a test notification to the current user)
+ */
+
+export const MESSAGE_EDIT_WINDOW_MS = 15 * 60 * 1000
+export const ATTACHMENT_MAX_BYTES = 25 * 1024 * 1024
+
+export const ChatKey = z.union([z.literal('general'), z.uuid()])
+export type ChatKey = z.infer<typeof ChatKey>
+
+export const MessageInput = z.object({ body: z.string().trim().min(1).max(4000) })
+export type MessageInput = z.infer<typeof MessageInput>
+
+export interface AttachmentDto {
+  id: string
+  taskId: string | null
+  messageId: string | null
+  fileName: string
+  sizeBytes: number
+  mime: string
+  uploadedBy: string
+  createdAt: string
+  /** Relative URL to open or download the file. */
+  url: string
+}
+
+export interface MessageDto {
+  id: string
+  chatKey: ChatKey
+  taskId: string | null
+  authorId: string
+  /** Empty string when deleted. */
+  body: string
+  createdAt: string
+  editedAt: string | null
+  deleted: boolean
+  /** User ids mentioned with @login in the body. */
+  mentions: string[]
+  attachments: AttachmentDto[]
+}
+
+export interface MessagesPage {
+  messages: MessageDto[]
+  /** Pass as `before` to load older messages; null when there are no more. */
+  nextBefore: string | null
+}
+
+export interface UnreadDto {
+  general: number
+  /** Only task chats with unread messages. */
+  tasks: Record<string, number>
+}
+
+export type WsEvent =
+  | { type: 'message.created' | 'message.updated' | 'message.deleted'; message: MessageDto }
+  | { type: 'chat.read'; chatKey: ChatKey; userId: string }
+  /** Something about the task changed; clients refetch what they show. */
+  | { type: 'task.changed'; taskId: string }
+
+export interface PushPublicKeyResponse {
+  /** VAPID public key (base64url), or null when push is not configured on the server. */
+  publicKey: string | null
+}
+
+export const PushSubscriptionInput = z.object({
+  endpoint: z.url(),
+  keys: z.object({ p256dh: z.string().min(1), auth: z.string().min(1) }),
+})
+export type PushSubscriptionInput = z.infer<typeof PushSubscriptionInput>
+
+export const PushUnsubscribeInput = z.object({ endpoint: z.url() })
+export type PushUnsubscribeInput = z.infer<typeof PushUnsubscribeInput>

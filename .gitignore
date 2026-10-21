@@ -1,5 +1,7 @@
 node_modules/
 dist/
+# Uploaded task files in local storage mode
+apps/server/storage/
 .env
 .env.*
 !.env.example

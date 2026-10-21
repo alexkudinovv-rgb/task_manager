@@ -12,8 +12,9 @@ export interface ThrottlePolicy {
 }
 
 export const DEFAULT_THROTTLE_POLICY: ThrottlePolicy = {
-  perLogin: { maxFailures: 5, windowMs: 15 * MINUTE_MS, lockMs: 15 * MINUTE_MS },
-  perIp: { maxFailures: 20, windowMs: 15 * MINUTE_MS, lockMs: 15 * MINUTE_MS },
+  // A wrong password still needs the TOTP code after it, so the limit can be lenient for people.
+  perLogin: { maxFailures: 10, windowMs: 15 * MINUTE_MS, lockMs: 5 * MINUTE_MS },
+  perIp: { maxFailures: 30, windowMs: 15 * MINUTE_MS, lockMs: 5 * MINUTE_MS },
 }
 
 // How far back callers must load failures so that checkLoginThrottle sees every lock still in force.

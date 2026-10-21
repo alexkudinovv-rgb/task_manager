@@ -9,6 +9,18 @@ const ConfigSchema = z.object({
   PUBLIC_URL: z.url().default('http://localhost:5173'),
   /** base64 of 32 random bytes; encrypts TOTP secrets at rest. Required once users exist. */
   TOTP_ENCRYPTION_KEY: z.string().min(1).optional(),
+  /** Web push (VAPID). Without both keys push is off and /api/push/public-key returns null. */
+  VAPID_PUBLIC_KEY: z.string().min(1).optional(),
+  VAPID_PRIVATE_KEY: z.string().min(1).optional(),
+  VAPID_SUBJECT: z.string().min(1).default('mailto:admin@car-city.local'),
+  /** Where task files live: a local folder (dev, a mounted volume) or S3-compatible storage (production). */
+  FILE_STORAGE: z.enum(['local', 's3']).default('local'),
+  FILE_STORAGE_DIR: z.string().min(1).default('./storage'),
+  S3_ENDPOINT: z.url().optional(),
+  S3_REGION: z.string().min(1).default('ru-central1'),
+  S3_BUCKET: z.string().min(1).optional(),
+  S3_ACCESS_KEY_ID: z.string().min(1).optional(),
+  S3_SECRET_ACCESS_KEY: z.string().min(1).optional(),
   /** Absolute path to the built web app (apps/web/dist); served at / when set. */
   WEB_DIST: z.string().min(1).optional(),
   /** Temporary shared key for the MCP spike; per-user keys replace it in stage 7. */

@@ -4,6 +4,7 @@ import {
   canCreateSubtask,
   canCreateTask,
   type TaskDetailsDto,
+  type TaskEvent,
   type TaskEventDto,
   type TransitionInput,
   type UserDto,
@@ -420,7 +421,8 @@ function AddSubtask({ details, viewer, lookup, refresh, onOpenTask }: SectionPro
   )
 }
 
-const EVENT_LABELS: Record<string, string> = {
+// Record over TaskEvent: a new event type in the shared model fails typecheck until it gets a label here.
+const EVENT_LABELS: Record<TaskEvent, string> = {
   task_created: 'поставил(а) задачу',
   task_started: 'взял(а) в работу',
   task_completed: 'завершил(а)',
@@ -432,6 +434,11 @@ const EVENT_LABELS: Record<string, string> = {
   due_reminder: 'напоминание о сроке',
   hot_set: 'поставил(а) «Горит»',
   task_overdue: 'срок прошёл',
+  task_updated: 'изменил(а) задачу',
+  coexecutors_changed: 'изменил(а) соисполнителей',
+  checklist_item_added: 'добавил(а) пункт чек-листа',
+  checklist_item_updated: 'отметил(а) пункт чек-листа',
+  checklist_item_removed: 'удалил(а) пункт чек-листа',
 }
 
 function History({ events, lookup }: { events: TaskEventDto[]; lookup: Lookup }) {
@@ -446,7 +453,7 @@ function History({ events, lookup }: { events: TaskEventDto[]; lookup: Lookup })
             <span className="mono muted">{formatMoment(event.at)}</span>
             <span>
               {event.actorId ? `${fullName(findUser(lookup, event.actorId))} ` : 'Система: '}
-              {EVENT_LABELS[event.type] ?? event.type}
+              {EVENT_LABELS[event.type as TaskEvent] ?? event.type}
             </span>
           </li>
         ))}

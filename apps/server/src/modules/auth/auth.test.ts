@@ -3,7 +3,9 @@ import { eq } from 'drizzle-orm'
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { buildApp } from '../../app'
-import { parseEncryptionKey, totpCode } from '../../auth'
+import { DEFAULT_THROTTLE_POLICY, parseEncryptionKey, totpCode } from '../../auth'
+
+const LOGIN_LIMIT = DEFAULT_THROTTLE_POLICY.perLogin.maxFailures
 import { loadConfig } from '../../config'
 import { invites, loginAttempts, recoveryCodes, sessions, users } from '../../db/schema'
 import { SESSION_COOKIE } from '../../http/session'
@@ -243,9 +245,9 @@ describe.skipIf(!TEST_DATABASE_URL)('auth API (real Postgres)', () => {
     expect((await h.verify({ challenge, code: '123456', recoveryCode: 'ABCD' })).statusCode).toBe(400)
   })
 
-  it('throttles after 5 failed passwords, even for the right one', async () => {
+  it('throttles after the failed-password limit, even for the right one', async () => {
     await h.newUser('throttled')
-    for (let i = 0; i < 5; i++) expect((await h.passwordStep('throttled', 'wrong password')).statusCode).toBe(401)
+    for (let i = 0; i < LOGIN_LIMIT; i++) expect((await h.passwordStep('throttled', 'wrong password')).statusCode).toBe(401)
     const blocked = await h.passwordStep('throttled')
     expect(blocked.statusCode).toBe(429)
     expect(blocked.json().error).toBe('throttled')
@@ -255,7 +257,7 @@ describe.skipIf(!TEST_DATABASE_URL)('auth API (real Postgres)', () => {
   it('throttles wrong second-factor codes the same way', async () => {
     const user = await h.newUser('throttled2')
     const challenge = await h.challengeFor('throttled2')
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < LOGIN_LIMIT; i++) {
       expect((await h.verify({ challenge, recoveryCode: 'AAAA-AAAA-AAAA-AAAA' })).statusCode).toBe(401)
     }
     const blocked = await h.verify({ challenge, code: h.nextCode(user.secret) })

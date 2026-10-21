@@ -6,7 +6,10 @@ import type { Db } from './db/client'
 import { installErrorHandler } from './http/errors'
 import { installSessionAuth } from './http/session'
 import { mcpRoutes } from './mcp/routes'
+import { attachmentRoutes } from './modules/attachments/routes'
 import { authRoutes } from './modules/auth/routes'
+import { chatRoutes } from './modules/chats/routes'
+import { pushRoutes } from './modules/push/routes'
 import { taskRoutes } from './modules/tasks/routes'
 
 // The system must never show up in search results (CC-242), so every response says so.
@@ -43,6 +46,9 @@ export function buildApp(config: Config, deps: AppDeps = {}): FastifyInstance {
     installSessionAuth(app, deps.db)
     app.register(authRoutes, { prefix: '/api', db: deps.db, config })
     app.register(taskRoutes, { prefix: '/api', db: deps.db, config })
+    app.register(chatRoutes, { prefix: '/api', db: deps.db, config })
+    app.register(attachmentRoutes, { prefix: '/api', db: deps.db, config })
+    app.register(pushRoutes, { prefix: '/api', db: deps.db, config })
   }
 
   // MCP spike: only exposed when a dev key is configured.
