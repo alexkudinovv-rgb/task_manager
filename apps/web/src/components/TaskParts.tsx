@@ -1,58 +1,78 @@
-import { formatDue } from '../dates'
-import { initials, isOverdue, type Department, type Status, type Task, type User } from '@car-city/shared'
+import { PRIORITY_LABELS, TASK_STATUS_LABELS, type Progress, type TaskStatus } from '@car-city/shared/model'
+import type { User } from '../api'
+import { fullName, initials, type TaskView } from '../workspace'
 
-export interface Lookup {
-  today: string
-  statuses: Map<string, Status>
-  departments: Map<string, Department>
-  users: Map<string, User>
+/** Statuses reuse the vehicle-class pastels from the guide. */
+export const STATUS_TONE: Record<TaskStatus, string> = {
+  new: 'slate',
+  in_progress: 'blue',
+  done: 'green',
 }
 
-function required<T>(map: Map<string, T>, id: string, kind: string): T {
-  const value = map.get(id)
-  if (!value) throw new Error(`Unknown ${kind}: ${id}`)
-  return value
+export function StatusTag({ view }: { view: TaskView }) {
+  const { status, cancelled } = view.task
+  if (status === 'done' && cancelled) return <span className="tag tone-sand">Отменена</span>
+  return <span className={`tag tone-${STATUS_TONE[status]}`}>{TASK_STATUS_LABELS[status]}</span>
 }
 
-/** Everything a card or a row needs about one task, resolved once. */
-export function resolveTask(task: Task, lookup: Lookup) {
-  const status = required(lookup.statuses, task.statusId, 'status')
-  const overdue = isOverdue(task, status, lookup.today)
-  return {
-    status,
-    department: required(lookup.departments, task.departmentId, 'department'),
-    assignee: required(lookup.users, task.assigneeId, 'user'),
-    overdue,
-    hot: task.isHot && !status.isFinal,
-    dueLabel: formatDue(task, lookup.today, overdue),
-  }
-}
-
-export function Avatar({ name }: { name: string }) {
+/** Priority, overdue, cancelled and document marks; «Средний» is the default and stays silent. */
+export function TaskFlags({ view, withCancelled = true }: { view: TaskView; withCancelled?: boolean }) {
+  const { task } = view
+  const done = task.status === 'done'
+  const quietPriority = task.priority === 'high' || task.priority === 'low'
   return (
-    <span className="avatar" title={name}>
-      {initials(name)}
+    <>
+      {view.hot && <span className="tag tag-hot">{PRIORITY_LABELS.hot}</span>}
+      {quietPriority && <span className="tag">{PRIORITY_LABELS[task.priority]}</span>}
+      {view.overdue && <span className="tag tag-overdue">Просрочено</span>}
+      {withCancelled && done && task.cancelled && <span className="tag tag-cancelled">Отменена</span>}
+      {task.requiresDocument && !done && <span className="tag tag-doc">Нужен документ</span>}
+    </>
+  )
+}
+
+export function Avatar({ user, small = false }: { user: User; small?: boolean }) {
+  return (
+    <span className={`avatar${small ? ' avatar-sm' : ''}`} title={fullName(user)}>
+      {initials(user)}
     </span>
   )
 }
 
-export function Flag({ kind }: { kind: 'hot' | 'overdue' }) {
-  return <span className={`tag tag-${kind}`}>{kind === 'hot' ? 'Горит' : 'Просрочено'}</span>
+/** Small coexecutor avatars, then the responsible. */
+export function People({ view }: { view: TaskView }) {
+  return (
+    <span className="people">
+      {view.coexecutors.map((user) => (
+        <Avatar key={user.id} user={user} small />
+      ))}
+      <Avatar user={view.responsible} />
+    </span>
+  )
 }
 
-export function SubtaskBar({ done, total, finished }: { done: number; total: number; finished: boolean }) {
+export function ProgressBar({ progress, finished }: { progress: Progress; finished: boolean }) {
   return (
-    <span className="subtasks">
-      <span className="subtasks-track">
-        <span
-          className={`subtasks-fill${finished ? ' is-finished' : ''}`}
-          style={{ width: `${Math.round((100 * done) / total)}%` }}
-        />
+    <span className="progress" title="Подзадачи и чек-лист">
+      <span className="progress-track">
+        <span className={`progress-fill${finished ? ' is-finished' : ''}`} style={{ width: `${Math.round(100 * progress.ratio)}%` }} />
       </span>
       <span className="mono">
-        {done}/{total}
+        {progress.done}/{progress.total}
       </span>
     </span>
+  )
+}
+
+/** Title as a button whose hit area stretches over the whole card or row. */
+export function OpenTitle({ view, onOpen, as: Tag = 'h3' }: { view: TaskView; onOpen: (id: string) => void; as?: 'h3' | 'span' }) {
+  const finished = view.task.status === 'done'
+  return (
+    <Tag className={`task-title${finished ? ' is-finished' : ''}`}>
+      <button type="button" className="task-open" onClick={() => onOpen(view.task.id)}>
+        {view.task.title}
+      </button>
+    </Tag>
   )
 }
 

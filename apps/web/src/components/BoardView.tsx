@@ -1,27 +1,27 @@
-import type { Status, Task } from '@car-city/shared'
-import { Avatar, CalendarIcon, ChatIcon, Flag, SubtaskBar, resolveTask, type Lookup } from './TaskParts'
+import { TASK_STATUSES, TASK_STATUS_LABELS } from '@car-city/shared/model'
+import { fullName, type TaskView } from '../workspace'
+import { CalendarIcon, ChatIcon, OpenTitle, People, ProgressBar, STATUS_TONE, TaskFlags } from './TaskParts'
 
 interface Props {
-  statuses: Status[]
-  tasks: Task[]
-  lookup: Lookup
+  views: TaskView[]
+  onOpen: (id: string) => void
 }
 
-export function BoardView({ statuses, tasks, lookup }: Props) {
+export function BoardView({ views, onOpen }: Props) {
   return (
     <div className="board-scroll">
-      <div className="board" style={{ gridTemplateColumns: `repeat(${statuses.length}, minmax(250px, 1fr))` }}>
-        {statuses.map((status) => {
-          const column = tasks.filter((task) => task.statusId === status.id)
+      <div className="board">
+        {TASK_STATUSES.map((status) => {
+          const column = views.filter((view) => view.task.status === status)
           return (
-            <section key={status.id} className="board-column" aria-label={status.title}>
+            <section key={status} className="board-column" aria-label={TASK_STATUS_LABELS[status]}>
               <header className="board-column-head">
-                <span className={`dot tone-${status.tone}`} />
-                <h2 className="mono-label">{status.title}</h2>
+                <span className={`dot tone-${STATUS_TONE[status]}`} />
+                <h2 className="mono-label">{TASK_STATUS_LABELS[status]}</h2>
                 <span className="mono muted">{column.length}</span>
               </header>
-              {column.map((task) => (
-                <TaskCard key={task.id} task={task} lookup={lookup} />
+              {column.map((view) => (
+                <TaskCard key={view.task.id} view={view} onOpen={onOpen} />
               ))}
               {column.length === 0 && <p className="board-empty">Пусто</p>}
             </section>
@@ -32,28 +32,27 @@ export function BoardView({ statuses, tasks, lookup }: Props) {
   )
 }
 
-function TaskCard({ task, lookup }: { task: Task; lookup: Lookup }) {
-  const view = resolveTask(task, lookup)
-  const finished = view.status.isFinal
+function TaskCard({ view, onOpen }: { view: TaskView; onOpen: (id: string) => void }) {
+  const { task } = view
+  const finished = task.status === 'done'
   return (
     <article className="card task-card">
       <div className="task-tags">
-        <span className="tag">{view.department.name}</span>
-        {view.hot && <Flag kind="hot" />}
-        {view.overdue && <Flag kind="overdue" />}
+        <TaskFlags view={view} />
       </div>
-      <h3 className={`task-title${finished ? ' is-finished' : ''}`}>{task.title}</h3>
-      {task.subtasks.total > 0 && <SubtaskBar {...task.subtasks} finished={finished} />}
+      <OpenTitle view={view} onOpen={onOpen} />
+      {view.author.role !== 'owner' && <span className="task-author">Постановщик — {fullName(view.author)}</span>}
+      {view.progress.total > 0 && <ProgressBar progress={view.progress} finished={finished} />}
       <div className="task-footer">
         <span className={`mono due${view.overdue ? ' is-overdue' : ''}`}>
           <CalendarIcon />
           {view.dueLabel}
         </span>
-        <span className="comments">
+        <span className="comments" title="Комментарии">
           <ChatIcon />
-          {task.comments}
+          {task.commentCount}
         </span>
-        <Avatar name={view.assignee.name} />
+        <People view={view} />
       </div>
     </article>
   )

@@ -1,5 +1,6 @@
 import Fastify, { type FastifyInstance } from 'fastify'
 import type { Config } from './config'
+import { mcpRoutes } from './mcp/routes'
 
 // The system must never show up in search results (CC-242), so every response says so.
 const NO_INDEX = 'noindex, nofollow, noarchive'
@@ -19,6 +20,11 @@ export function buildApp(config: Config): FastifyInstance {
   })
 
   app.get('/api/health', async () => ({ status: 'ok' }))
+
+  // MCP spike: only exposed when a dev key is configured.
+  if (config.MCP_DEV_KEY) {
+    app.register(mcpRoutes, { key: config.MCP_DEV_KEY })
+  }
 
   return app
 }

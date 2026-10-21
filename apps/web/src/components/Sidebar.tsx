@@ -1,16 +1,16 @@
-import type { Department } from '@car-city/shared'
+import type { DirectoryItem } from '../api'
 import { ChatIcon } from './TaskParts'
 
 interface Props {
-  departments: { department: Department; count: number }[]
-  activeDepartmentId: string | null
-  onSelectDepartment: (id: string | null) => void
+  units: { unit: DirectoryItem; count: number }[]
+  activeUnitId: string | null
+  onSelectUnit: (id: string | null) => void
   taskCount: number
 }
 
 const SOON = 'Появится в следующих версиях'
 
-export function Sidebar({ departments, activeDepartmentId, onSelectDepartment, taskCount }: Props) {
+export function Sidebar({ units, activeUnitId, onSelectUnit, taskCount }: Props) {
   return (
     <nav className="sidebar" aria-label="Разделы">
       <div className="sidebar-brand">
@@ -22,7 +22,7 @@ export function Sidebar({ departments, activeDepartmentId, onSelectDepartment, t
       </div>
 
       <div className="sidebar-main">
-        <a className="sidebar-link is-active" href="#" aria-current="page" onClick={() => onSelectDepartment(null)}>
+        <a className="sidebar-link is-active" href="#" aria-current="page" onClick={() => onSelectUnit(null)}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <rect x="3" y="3" width="7" height="18" rx="2" />
             <rect x="14" y="3" width="7" height="11" rx="2" />
@@ -55,18 +55,18 @@ export function Sidebar({ departments, activeDepartmentId, onSelectDepartment, t
         </span>
       </div>
 
-      <div className="sidebar-departments">
+      <div className="sidebar-units">
         <div className="sidebar-divider" />
-        <span className="sidebar-section">Отделы</span>
-        {departments.map(({ department, count }) => (
+        <span className="sidebar-section">Подразделения</span>
+        {units.map(({ unit, count }) => (
           <button
-            key={department.id}
+            key={unit.id}
             type="button"
-            className={`sidebar-sublink${activeDepartmentId === department.id ? ' is-active' : ''}`}
-            aria-pressed={activeDepartmentId === department.id}
-            onClick={() => onSelectDepartment(activeDepartmentId === department.id ? null : department.id)}
+            className={`sidebar-sublink${activeUnitId === unit.id ? ' is-active' : ''}${count === 0 ? ' is-empty' : ''}`}
+            aria-pressed={activeUnitId === unit.id}
+            onClick={() => onSelectUnit(activeUnitId === unit.id ? null : unit.id)}
           >
-            {department.name}
+            {unit.name}
             <span className="sidebar-count">{count}</span>
           </button>
         ))}

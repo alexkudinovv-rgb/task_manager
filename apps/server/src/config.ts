@@ -4,6 +4,9 @@ const ConfigSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   HOST: z.string().default('127.0.0.1'),
   PORT: z.coerce.number().int().positive().default(3000),
+  DATABASE_URL: z.url().optional(),
+  /** Temporary shared key for the MCP spike; per-user keys replace it in stage 7. */
+  MCP_DEV_KEY: z.string().min(16).optional(),
 })
 
 export type Config = z.infer<typeof ConfigSchema>

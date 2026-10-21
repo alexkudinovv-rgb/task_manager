@@ -1,25 +1,20 @@
-import type { Task } from '@car-city/shared'
+import { moscowParts, type Task } from '@car-city/shared/model'
 
 const MONTHS = ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек']
 const DAY_MS = 86_400_000
 
-function pad(n: number): string {
-  return String(n).padStart(2, '0')
-}
+// Calendar dates are YYYY-MM-DD strings; arithmetic runs in UTC so the machine timezone never leaks in.
+const parseIsoDate = (iso: string) => new Date(`${iso}T00:00:00Z`)
 
-function parseIsoDate(iso: string): Date {
-  const [y, m, d] = iso.split('-').map(Number)
-  return new Date(y, m - 1, d)
-}
-
-export function toIsoDate(date: Date): string {
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+/** Today's date in Moscow, where all deadlines live. */
+export function moscowToday(now: Date = new Date()): string {
+  return moscowParts(now).date
 }
 
 export function shiftIsoDate(iso: string, days: number): string {
   const date = parseIsoDate(iso)
-  date.setDate(date.getDate() + days)
-  return toIsoDate(date)
+  date.setUTCDate(date.getUTCDate() + days)
+  return date.toISOString().slice(0, 10)
 }
 
 function daysBetween(fromIso: string, toIso: string): number {
@@ -35,13 +30,18 @@ export function plural(n: number, [one, few, many]: [string, string, string]): s
   return many
 }
 
+/** "20 окт". */
+export function formatDay(iso: string): string {
+  const date = parseIsoDate(iso.slice(0, 10))
+  return `${date.getUTCDate()} ${MONTHS[date.getUTCMonth()]}`
+}
+
 /** "Сегодня, 18:00", "Завтра", "30 окт", "18 окт · −2 дня". */
-export function formatDue(task: Task, today: string, overdue: boolean): string {
+export function formatDue(task: Pick<Task, 'dueDate' | 'dueTime'>, today: string, overdue: boolean): string {
   const diff = daysBetween(today, task.dueDate)
   const time = task.dueTime ? `, ${task.dueTime}` : ''
   if (diff === 0) return `Сегодня${time}`
   if (diff === 1) return `Завтра${time}`
-  const date = parseIsoDate(task.dueDate)
-  const label = `${date.getDate()} ${MONTHS[date.getMonth()]}`
+  const label = formatDay(task.dueDate)
   return overdue ? `${label} · −${-diff} ${plural(-diff, ['день', 'дня', 'дней'])}` : label
 }

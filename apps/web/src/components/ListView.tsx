@@ -1,17 +1,21 @@
+import type { DirectoryItem } from '../api'
 import { plural } from '../dates'
-import type { Department, Task } from '@car-city/shared'
-import { Avatar, SubtaskBar, resolveTask, type Lookup } from './TaskParts'
+import { fullName, type TaskView } from '../workspace'
+import { Avatar, OpenTitle, ProgressBar, StatusTag, TaskFlags } from './TaskParts'
 
 interface Props {
-  departments: Department[]
-  tasks: Task[]
-  lookup: Lookup
+  units: DirectoryItem[]
+  views: TaskView[]
+  onOpen: (id: string) => void
 }
 
-export function ListView({ departments, tasks, lookup }: Props) {
-  const groups = departments
-    .map((department) => ({ department, tasks: tasks.filter((task) => task.departmentId === department.id) }))
-    .filter((group) => group.tasks.length > 0)
+const NO_UNIT: DirectoryItem = { id: '', name: 'Без подразделения' }
+
+/** Grouped by the unit of the responsible, in the order of the units list. */
+export function ListView({ units, views, onOpen }: Props) {
+  const groups = [...units, NO_UNIT]
+    .map((unit) => ({ unit, views: views.filter((view) => (view.unit?.id ?? '') === unit.id) }))
+    .filter((group) => group.views.length > 0)
 
   if (groups.length === 0) return <p className="card list-empty">Под фильтр не попала ни одна задача.</p>
 
@@ -23,57 +27,62 @@ export function ListView({ departments, tasks, lookup }: Props) {
         <span>Статус</span>
         <span>Ответственный</span>
         <span>Срок</span>
-        <span>Подзадачи</span>
+        <span>Прогресс</span>
       </div>
-      {groups.map(({ department, tasks: groupTasks }) => (
-        <DepartmentGroup key={department.id} department={department} tasks={groupTasks} lookup={lookup} />
+      {groups.map((group) => (
+        <UnitGroup key={group.unit.id} unit={group.unit} views={group.views} onOpen={onOpen} />
       ))}
     </div>
   )
 }
 
-function DepartmentGroup({ department, tasks, lookup }: { department: Department; tasks: Task[]; lookup: Lookup }) {
-  const views = tasks.map((task) => ({ task, view: resolveTask(task, lookup) }))
-  const hot = views.filter(({ view }) => view.hot).length
-  const overdue = views.filter(({ view }) => view.overdue).length
-  const lead = lookup.users.get(department.leadId)
+function UnitGroup({ unit, views, onOpen }: { unit: DirectoryItem; views: TaskView[]; onOpen: (id: string) => void }) {
+  const hot = views.filter((view) => view.hot).length
+  const overdue = views.filter((view) => view.overdue).length
 
   return (
-    <section className="card list-group" aria-label={department.name}>
+    <section className="card list-group" aria-label={unit.name}>
       <header className="list-group-head">
-        <h2>{department.name}</h2>
-        {lead && <span className="muted">руководитель — {lead.name}</span>}
+        <h2>{unit.name}</h2>
         <span className="mono muted list-group-count">
-          {tasks.length} {plural(tasks.length, ['задача', 'задачи', 'задач'])}
+          {views.length} {plural(views.length, ['задача', 'задачи', 'задач'])}
         </span>
         {hot > 0 && <span className="tag tag-hot">Горит · {hot}</span>}
         {overdue > 0 && <span className="tag tag-overdue">Просрочено · {overdue}</span>}
       </header>
-      {views.map(({ task, view }) => (
-        <div key={task.id} className="list-row">
-          <span className={`check${view.status.isFinal ? ' is-checked' : ''}`} aria-hidden="true" />
-          <div className="list-row-title">
-            <span className={`task-title${view.status.isFinal ? ' is-finished' : ''}`}>{task.title}</span>
-            <span className="muted">
-              {task.comments} {plural(task.comments, ['комментарий', 'комментария', 'комментариев'])}
-            </span>
-          </div>
-          <span className={`tag tone-${view.status.tone}`}>{view.status.title}</span>
-          <span className="list-row-owner">
-            <Avatar name={view.assignee.name} />
-            {view.assignee.name}
-          </span>
-          <span className={`mono due${view.overdue ? ' is-overdue' : ''}`}>
-            {(view.hot || view.overdue) && <span className={`dot ${view.overdue ? 'dot-overdue' : 'dot-hot'}`} />}
-            {view.dueLabel}
-          </span>
-          {task.subtasks.total > 0 ? (
-            <SubtaskBar {...task.subtasks} finished />
-          ) : (
-            <span className="mono muted">—</span>
-          )}
-        </div>
+      {views.map((view) => (
+        <ListRow key={view.task.id} view={view} onOpen={onOpen} />
       ))}
     </section>
+  )
+}
+
+function ListRow({ view, onOpen }: { view: TaskView; onOpen: (id: string) => void }) {
+  const { task } = view
+  const finished = task.status === 'done'
+  return (
+    <div className="list-row">
+      <span className={`check${finished ? ' is-checked' : ''}`} aria-hidden="true" />
+      <div className="list-row-title">
+        <OpenTitle view={view} onOpen={onOpen} as="span" />
+        <span className="list-row-meta">
+          <TaskFlags view={view} withCancelled={false} />
+          <span className="muted">
+            {task.commentCount} {plural(task.commentCount, ['комментарий', 'комментария', 'комментариев'])}
+          </span>
+        </span>
+      </div>
+      <StatusTag view={view} />
+      <span className="list-row-owner">
+        <Avatar user={view.responsible} />
+        {fullName(view.responsible)}
+      </span>
+      <span className={`mono due${view.overdue ? ' is-overdue' : ''}`}>{view.dueLabel}</span>
+      {view.progress.total > 0 ? (
+        <ProgressBar progress={view.progress} finished />
+      ) : (
+        <span className="mono muted">—</span>
+      )}
+    </div>
   )
 }
