@@ -5,6 +5,8 @@ const ConfigSchema = z.object({
   HOST: z.string().default('127.0.0.1'),
   PORT: z.coerce.number().int().positive().default(3000),
   DATABASE_URL: z.url().optional(),
+  /** Absolute path to the built web app (apps/web/dist); served at / when set. */
+  WEB_DIST: z.string().min(1).optional(),
   /** Temporary shared key for the MCP spike; per-user keys replace it in stage 7. */
   MCP_DEV_KEY: z.string().min(16).optional(),
 })
