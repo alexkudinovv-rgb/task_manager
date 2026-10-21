@@ -13,7 +13,7 @@ import {
   type ThrottleDecision,
 } from '../../auth'
 import type { Db } from '../../db/client'
-import { invites, loginAttempts, positions, recoveryCodes, sessions, units, users, type Invite, type User } from '../../db/schema'
+import { invites, loginAttempts, positions, pushSubscriptions, recoveryCodes, sessions, units, users, type Invite, type User } from '../../db/schema'
 import { apiError } from '../../http/errors'
 
 /** A drizzle transaction handle (same query API as Db). */
@@ -177,6 +177,7 @@ export async function resetAccessAndInvite(db: Db, userId: string, options: Invi
     if (!row) return undefined
     await tx.delete(recoveryCodes).where(eq(recoveryCodes.userId, userId))
     await tx.delete(sessions).where(eq(sessions.userId, userId))
+    await tx.delete(pushSubscriptions).where(eq(pushSubscriptions.userId, userId))
     return issueInvite(tx, userId, options)
   })
 }

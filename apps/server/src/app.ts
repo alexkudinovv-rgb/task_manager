@@ -4,6 +4,7 @@ import Fastify, { type FastifyInstance } from 'fastify'
 import type { Config } from './config'
 import type { Db } from './db/client'
 import { installErrorHandler } from './http/errors'
+import { installSecurityHeaders } from './http/security-headers'
 import { installSessionAuth } from './http/session'
 import { mcpRoutes } from './mcp/routes'
 import { attachmentRoutes } from './modules/attachments/routes'
@@ -23,12 +24,14 @@ export interface AppDeps {
 export function buildApp(config: Config, deps: AppDeps = {}): FastifyInstance {
   const app = Fastify({
     logger: config.NODE_ENV === 'test' ? false : { level: config.NODE_ENV === 'production' ? 'info' : 'debug' },
-    // In production the app sits behind the hosting proxy (Railway / Caddy); take the client IP
-    // from X-Forwarded-For so per-IP login throttling sees real users, not the proxy.
-    trustProxy: config.NODE_ENV === 'production',
+    // In production the app sits behind exactly one proxy (Railway / Caddy). Trusting one hop takes the
+    // client IP from the address that proxy appended, so a client-sent X-Forwarded-For can't spoof it.
+    // Trust only hop 0 (the proxy that connected to us), i.e. one hop; outside production trust nothing.
+    trustProxy: (_address: string, hop: number) => config.NODE_ENV === 'production' && hop === 0,
   })
 
   installErrorHandler(app)
+  installSecurityHeaders(app, config)
   app.register(fastifyCookie)
 
   app.addHook('onSend', async (_request, reply) => {

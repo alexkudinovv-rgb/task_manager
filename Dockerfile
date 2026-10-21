@@ -17,7 +17,9 @@ ENV NODE_ENV=production \
     HOST=0.0.0.0 \
     PORT=3000 \
     WEB_DIST=/app/apps/web/dist
-COPY --from=build /app /app
+COPY --from=build --chown=node:node /app /app
+# The image's built-in unprivileged user; local file storage lives under /app/apps/server/storage.
+USER node
 EXPOSE 3000
 # Migrations and reference data are idempotent, so every start brings the database up to date.
 CMD ["sh", "-c", "npm run db:migrate -w apps/server && npm run db:seed -w apps/server && exec npm start -w apps/server"]

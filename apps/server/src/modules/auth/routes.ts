@@ -31,7 +31,7 @@ import {
   verifyTotp,
 } from '../../auth'
 import type { Db } from '../../db/client'
-import { invites, recoveryCodes, sessions, users, type User } from '../../db/schema'
+import { invites, pushSubscriptions, recoveryCodes, sessions, users, type User } from '../../db/schema'
 import { apiError } from '../../http/errors'
 import { clearSessionCookie, requireActor, requireAdmin, setSessionCookie } from '../../http/session'
 import type { ModuleOptions } from '../types'
@@ -147,6 +147,8 @@ export const authRoutes: FastifyPluginAsync<ModuleOptions> = async (app, { db, c
   app.post('/auth/logout-all', async (request, reply) => {
     const actor = requireActor(request)
     await db.delete(sessions).where(eq(sessions.userId, actor.id))
+    // Other devices must stop receiving pushes too, not just lose their session.
+    await db.delete(pushSubscriptions).where(eq(pushSubscriptions.userId, actor.id))
     clearSessionCookie(reply)
     return reply.code(204).send()
   })
@@ -196,6 +198,9 @@ export const authRoutes: FastifyPluginAsync<ModuleOptions> = async (app, { db, c
     const found = await findOpenInvite(db, token, now)
     if (!found) throw invalid()
     const { invite, user } = found
+    // The 6-digit code is guessable in principle, so wrong codes count against the same limits as login.
+    const ip = request.ip || null
+    await assertNotThrottled(db, user.login, ip, now.getTime())
 
     const problems = validatePasswordPolicy(input.password, { login: user.login })
     if (problems.length > 0) {
@@ -207,7 +212,10 @@ export const authRoutes: FastifyPluginAsync<ModuleOptions> = async (app, { db, c
     const secretEnc = user.totpSecretEnc
     if (!secretEnc) throw apiError(400, 'invalid_code', { message: 'Сначала откройте ссылку и добавьте ключ в приложение' })
     const step = verifyTotp(decryptSecret(secretEnc, key()), input.code, now.getTime(), { lastUsedStep: user.totpLastStep })
-    if (step === null) throw apiError(400, 'invalid_code', { message: INVALID_CODE })
+    if (step === null) {
+      await recordLoginAttempt(db, user.login, ip, false, now.getTime())
+      throw apiError(400, 'invalid_code', { message: INVALID_CODE })
+    }
 
     const passwordHash = await hashPassword(input.password)
     const recovery = generateRecoveryCodes()
@@ -316,6 +324,7 @@ export const authRoutes: FastifyPluginAsync<ModuleOptions> = async (app, { db, c
       }
       const [row] = await tx.update(users).set({ disabledAt: new Date() }).where(eq(users.id, current.id)).returning()
       await tx.delete(sessions).where(eq(sessions.userId, current.id))
+      await tx.delete(pushSubscriptions).where(eq(pushSubscriptions.userId, current.id))
       await tx.delete(invites).where(and(eq(invites.userId, current.id), isNull(invites.usedAt)))
       return row!
     })

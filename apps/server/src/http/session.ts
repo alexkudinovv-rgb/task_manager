@@ -7,6 +7,7 @@ import { sessions, users } from '../db/schema'
 import { apiError } from './errors'
 
 export const SESSION_COOKIE = 'cc_session'
+const LAST_SEEN_STEP_MS = 5 * 60 * 1000
 
 /** Who is making the request, resolved from the session cookie. */
 export interface RequestActor {
@@ -33,13 +34,20 @@ export function installSessionAuth(app: FastifyInstance, db: Db): void {
     if (!request.url.startsWith('/api/')) return
     const token = request.cookies[SESSION_COOKIE]
     if (!token) return
+    const now = new Date()
     const [row] = await db
-      .select({ sessionId: sessions.id, id: users.id, role: users.role, isAdmin: users.isAdmin })
+      .select({ sessionId: sessions.id, id: users.id, role: users.role, isAdmin: users.isAdmin, lastSeenAt: sessions.lastSeenAt })
       .from(sessions)
       .innerJoin(users, eq(users.id, sessions.userId))
-      .where(and(eq(sessions.tokenHash, hashToken(token)), gt(sessions.expiresAt, new Date()), isNull(users.disabledAt)))
+      .where(and(eq(sessions.tokenHash, hashToken(token)), gt(sessions.expiresAt, now), isNull(users.disabledAt)))
       .limit(1)
-    if (row) request.actor = row
+    if (!row) return
+    const { lastSeenAt, ...actor } = row
+    request.actor = actor
+    // Activity for the sessions list; written at most every few minutes, not on every request.
+    if (now.getTime() - lastSeenAt.getTime() > LAST_SEEN_STEP_MS) {
+      await db.update(sessions).set({ lastSeenAt: now }).where(eq(sessions.id, row.sessionId))
+    }
   })
 }
 

@@ -9,6 +9,8 @@ import { TaskPanel } from './TaskPanel'
 import { TasksPage } from './TasksPage'
 import { Sheet } from './ui'
 import { UsersPage } from './UsersPage'
+import { OfflineBanner, PushSettings, UpdatePrompt } from '../pwa'
+import { GeneralChatPage, useUnread } from '../chat'
 
 /** Loads the workspace (mock in the demo, GET /api/workspace otherwise) and lays out the app. */
 export function MainScreen({ onSignedOut }: { onSignedOut: () => void }) {
@@ -55,6 +57,7 @@ interface ShellProps {
 function Shell({ workspace, lookup, reload, refreshError, onSignedOut }: ShellProps) {
   const [viewerId, setViewerId] = useState(workspace.me.id)
   const [section, setSection] = useState<Section>('tasks')
+  const unread = useUnread()
   const [unitId, setUnitId] = useState<string | null>(null)
   const [openTaskId, setOpenTaskId] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
@@ -93,12 +96,14 @@ function Shell({ workspace, lookup, reload, refreshError, onSignedOut }: ShellPr
         activeUnitId={unitId}
         onSelectUnit={setUnitId}
         taskCount={visible.length}
+        chatUnread={unread.general}
         me={DEMO ? null : workspace.me}
         onLogout={() => void logout(false)}
         onLogoutAll={() => void logout(true)}
       />
 
       <main className="main">
+        <OfflineBanner />
         {refreshError != null && (
           <div className="error-note" role="alert">
             <p>Не удалось обновить данные. {errorMessage(refreshError)}</p>
@@ -106,6 +111,17 @@ function Shell({ workspace, lookup, reload, refreshError, onSignedOut }: ShellPr
         )}
         {section === 'users' && canManageUsers ? (
           <UsersPage workspace={workspace} lookup={lookup} onChanged={reload} />
+        ) : section === 'chat' ? (
+          <GeneralChatPage users={workspace.users} me={viewer} />
+        ) : section === 'settings' ? (
+          <>
+            <header className="page-head">
+              <div className="page-head-title">
+                <h1>Уведомления</h1>
+              </div>
+            </header>
+            <PushSettings />
+          </>
         ) : (
           <TasksPage
             workspace={workspace}
@@ -155,6 +171,8 @@ function Shell({ workspace, lookup, reload, refreshError, onSignedOut }: ShellPr
           />
         </Sheet>
       )}
+
+      <UpdatePrompt />
     </div>
   )
 }

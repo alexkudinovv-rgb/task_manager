@@ -2,7 +2,7 @@ import type { DirectoryItem, UserDto } from '@car-city/shared/model'
 import { fullName } from '../workspace'
 import { ChatIcon } from './TaskParts'
 
-export type Section = 'tasks' | 'users'
+export type Section = 'tasks' | 'users' | 'settings' | 'chat'
 
 interface Props {
   section: Section
@@ -13,6 +13,8 @@ interface Props {
   activeUnitId: string | null
   onSelectUnit: (id: string | null) => void
   taskCount: number
+  /** Unread messages in the general chat. */
+  chatUnread: number
   /** Signed-in user; null in the demo. */
   me: UserDto | null
   onLogout: () => void
@@ -22,7 +24,7 @@ interface Props {
 const SOON = 'Появится в следующих версиях'
 
 export function Sidebar(props: Props) {
-  const { section, onSection, canManageUsers, units, activeUnitId, onSelectUnit, taskCount, me } = props
+  const { section, onSection, canManageUsers, units, activeUnitId, onSelectUnit, taskCount, chatUnread, me } = props
   return (
     <nav className="sidebar" aria-label="Разделы">
       <div className="sidebar-brand">
@@ -64,6 +66,18 @@ export function Sidebar(props: Props) {
             Пользователи
           </button>
         )}
+        <button
+          type="button"
+          className={`sidebar-link${section === 'settings' ? ' is-active' : ''}`}
+          aria-current={section === 'settings' ? 'page' : undefined}
+          onClick={() => onSection('settings')}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+            <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+          </svg>
+          Уведомления
+        </button>
         <span className="sidebar-link is-soon" title={SOON} aria-disabled="true">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M3 3v18h18" />
@@ -71,10 +85,20 @@ export function Sidebar(props: Props) {
           </svg>
           Обзор собственника
         </span>
-        <span className="sidebar-link is-soon" title={SOON} aria-disabled="true">
+        <button
+          type="button"
+          className={`sidebar-link${section === 'chat' ? ' is-active' : ''}`}
+          aria-current={section === 'chat' ? 'page' : undefined}
+          onClick={() => onSection('chat')}
+        >
           <ChatIcon size={18} />
           Общий чат
-        </span>
+          {chatUnread > 0 && (
+            <span className="sidebar-count" aria-label={`Непрочитанных: ${chatUnread}`}>
+              {chatUnread}
+            </span>
+          )}
+        </button>
         <span className="sidebar-link is-soon" title={SOON} aria-disabled="true">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M3 12h4l2-6 4 12 2-6h6" />

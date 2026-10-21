@@ -10,6 +10,8 @@ import {
   type UserDto,
 } from '@car-city/shared/model'
 import { serverApi } from '../api'
+import { Attachments } from '../attachments/Attachments'
+import { ChatPanel } from '../chat'
 import { FormError } from '../api/errors'
 import { formatDay } from '../dates'
 import { findUser, fullName, type Lookup, type TaskView } from '../workspace'
@@ -69,6 +71,20 @@ export function LiveTask({ view, viewer, lookup, onChanged, onOpenTask }: Props)
       <StatusActions {...props} />
       <DueRequest {...props} />
       <Checklist {...props} />
+      <Attachments
+        taskId={details.task.id}
+        canUpload={details.task.status !== 'done'}
+        canDelete={(file) =>
+          details.task.status !== 'done' &&
+          (file.uploadedBy === viewer.id || details.task.authorId === viewer.id || viewer.role === 'owner')
+        }
+        onChanged={() => void refresh()}
+        userName={(id) => fullName(findUser(lookup, id))}
+      />
+      <section className="panel-section">
+        <span className="mono-label">Обсуждение</span>
+        <ChatPanel chatKey={details.task.id} readOnly={!details.allowedActions.comment} users={[...lookup.users.values()]} me={viewer} />
+      </section>
       <EditTask {...props} />
       <AddSubtask {...props} />
       {readOnly && (
@@ -137,7 +153,7 @@ function StatusActions({ details, lookup, refresh, onOpenTask }: SectionProps) {
           </button>
         )}
       </div>
-      {needsDocument && <p className="muted">Завершить можно только с приложенным документом — загрузка файлов появится позже.</p>}
+      {needsDocument && <p className="muted">Завершить можно только с приложенным документом — добавьте его в блоке «Файлы».</p>}
       {closing && (
         <form className="form" onSubmit={submitComment}>
           <Field label={closing === 'cancel' ? 'Почему задача больше не нужна' : 'Что нужно доделать'} hint="Комментарий обязателен.">

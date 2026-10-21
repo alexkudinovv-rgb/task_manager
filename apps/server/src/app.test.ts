@@ -23,6 +23,24 @@ describe('server skeleton', () => {
     }
   })
 
+  it('sends browser security headers, without HSTS outside production', async () => {
+    const response = await app.inject({ method: 'GET', url: '/api/health' })
+    expect(response.headers['content-security-policy']).toContain("script-src 'self'")
+    expect(response.headers['content-security-policy']).toContain("frame-ancestors 'none'")
+    expect(response.headers['x-content-type-options']).toBe('nosniff')
+    expect(response.headers['referrer-policy']).toBe('same-origin')
+    expect(response.headers['x-frame-options']).toBe('DENY')
+    expect(response.headers['strict-transport-security']).toBeUndefined()
+  })
+
+  it('adds HSTS in production', async () => {
+    const prod = buildApp(loadConfig({ NODE_ENV: 'production', PUBLIC_URL: 'https://tasks.example.ru' }))
+    const response = await prod.inject({ method: 'GET', url: '/api/health' })
+    expect(response.headers['strict-transport-security']).toBe('max-age=31536000; includeSubDomains')
+    expect(response.headers['content-security-policy']).toContain('wss://tasks.example.ru')
+    await prod.close()
+  })
+
   it('disallows all crawlers in robots.txt', async () => {
     const response = await app.inject({ method: 'GET', url: '/robots.txt' })
     expect(response.body).toBe('User-agent: *\nDisallow: /\n')
