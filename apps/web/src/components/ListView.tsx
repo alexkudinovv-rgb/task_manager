@@ -27,7 +27,7 @@ export function ListView({ units, views, onOpen }: Props) {
         <span>Статус</span>
         <span>Ответственный</span>
         <span>Срок</span>
-        <span>Прогресс</span>
+        <span className="list-row-progress">Прогресс</span>
       </div>
       {groups.map((group) => (
         <UnitGroup key={group.unit.id} unit={group.unit} views={group.views} onOpen={onOpen} />
@@ -72,17 +72,18 @@ function ListRow({ view, onOpen }: { view: TaskView; onOpen: (id: string) => voi
           </span>
         </span>
       </div>
-      <StatusTag view={view} />
-      <span className="list-row-owner">
-        <Avatar user={view.responsible} />
-        {fullName(view.responsible)}
+      {/* Table cells on a wide list; one line under the title once the list turns into cards. */}
+      <div className="list-row-facts">
+        <StatusTag view={view} />
+        <span className="list-row-owner">
+          <Avatar user={view.responsible} />
+          <span className="list-row-owner-name">{fullName(view.responsible)}</span>
+        </span>
+        <span className={`mono due${view.overdue ? ' is-overdue' : ''}`}>{view.dueLabel}</span>
+      </div>
+      <span className="list-row-progress">
+        {view.progress.total > 0 ? <ProgressBar progress={view.progress} finished /> : <span className="mono muted">—</span>}
       </span>
-      <span className={`mono due${view.overdue ? ' is-overdue' : ''}`}>{view.dueLabel}</span>
-      {view.progress.total > 0 ? (
-        <ProgressBar progress={view.progress} finished />
-      ) : (
-        <span className="mono muted">—</span>
-      )}
     </div>
   )
 }

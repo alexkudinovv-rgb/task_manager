@@ -27,14 +27,6 @@ export interface TaskFormValues {
   requiresDocument: boolean
 }
 
-/** Groups of fields the viewer may not change (edit mode follows allowedActions). */
-export interface TaskFormLocks {
-  main?: boolean
-  due?: boolean
-  priority?: boolean
-  coexecutors?: boolean
-}
-
 export function newTaskValues(responsibleId: string): TaskFormValues {
   return {
     title: '',
@@ -76,20 +68,16 @@ export function toCreateInput(values: TaskFormValues, parentId?: string): Create
   }
 }
 
-/** Body for PATCH /api/tasks/:id: only fields that changed and are not locked. */
-export function toUpdateInput(before: TaskFormValues, after: TaskFormValues, locks: TaskFormLocks): UpdateTaskInput {
+/** Body for PATCH /api/tasks/:id: only the fields that changed. Coexecutors go through PUT /coexecutors. */
+export function toUpdateInput(before: TaskFormValues, after: TaskFormValues): UpdateTaskInput {
   const patch: UpdateTaskInput = {}
-  if (!locks.main) {
-    if (after.title !== before.title) patch.title = after.title
-    if (after.description !== before.description) patch.description = after.description
-    if (after.responsibleId !== before.responsibleId) patch.responsibleId = after.responsibleId
-    if (after.requiresDocument !== before.requiresDocument) patch.requiresDocument = after.requiresDocument
-  }
-  if (!locks.due) {
-    if (after.dueDate !== before.dueDate) patch.dueDate = after.dueDate
-    if (after.dueTime !== before.dueTime) patch.dueTime = after.dueTime || null
-  }
-  if (!locks.priority && after.priority !== before.priority) patch.priority = after.priority
+  if (after.title !== before.title) patch.title = after.title
+  if (after.description !== before.description) patch.description = after.description
+  if (after.responsibleId !== before.responsibleId) patch.responsibleId = after.responsibleId
+  if (after.requiresDocument !== before.requiresDocument) patch.requiresDocument = after.requiresDocument
+  if (after.dueDate !== before.dueDate) patch.dueDate = after.dueDate
+  if (after.dueTime !== before.dueTime) patch.dueTime = after.dueTime || null
+  if (after.priority !== before.priority) patch.priority = after.priority
   return patch
 }
 
@@ -100,7 +88,6 @@ interface Props {
   canAssign: (user: UserDto) => boolean
   /** «Горит» is the owner's call. */
   allowHot: boolean
-  locks?: TaskFormLocks
   submitLabel: string
   /** Throws on failure; the error is shown under the form. */
   onSubmit: (values: TaskFormValues) => Promise<void>
@@ -108,7 +95,7 @@ interface Props {
   onOpenTask?: (id: string) => void
 }
 
-export function TaskForm({ initial, lookup, canAssign, allowHot, locks = {}, submitLabel, onSubmit, onCancel, onOpenTask }: Props) {
+export function TaskForm({ initial, lookup, canAssign, allowHot, submitLabel, onSubmit, onCancel, onOpenTask }: Props) {
   const [values, setValues] = useState(initial)
   const action = useAction()
   const set = <K extends keyof TaskFormValues>(key: K, value: TaskFormValues[K]) => setValues((v) => ({ ...v, [key]: value }))
@@ -141,20 +128,19 @@ export function TaskForm({ initial, lookup, canAssign, allowHot, locks = {}, sub
   return (
     <form className="form" onSubmit={submit} noValidate>
       <Field label="Название">
-        <input className="input" maxLength={200} disabled={locks.main} value={values.title} onChange={(e) => set('title', e.target.value)} />
+        <input className="input" maxLength={200} value={values.title} onChange={(e) => set('title', e.target.value)} />
       </Field>
       <Field label="Описание">
         <textarea
           className="input textarea"
           rows={3}
           maxLength={10000}
-          disabled={locks.main}
           value={values.description}
           onChange={(e) => set('description', e.target.value)}
         />
       </Field>
       <Field label="Ответственный">
-        <select className="input" disabled={locks.main} value={values.responsibleId} onChange={(e) => set('responsibleId', e.target.value)}>
+        <select className="input" value={values.responsibleId} onChange={(e) => set('responsibleId', e.target.value)}>
           {!values.responsibleId && <option value="">Выберите</option>}
           {responsibleOptions.map((user) => (
             <option key={user.id} value={user.id}>
@@ -164,7 +150,7 @@ export function TaskForm({ initial, lookup, canAssign, allowHot, locks = {}, sub
         </select>
       </Field>
       {coexecutorOptions.length > 0 && (
-        <fieldset className="field checks" disabled={locks.coexecutors}>
+        <fieldset className="field checks">
           <legend className="field-label">Соисполнители</legend>
           {coexecutorOptions.map((user) => (
             <label key={user.id} className="check-row">
@@ -179,12 +165,7 @@ export function TaskForm({ initial, lookup, canAssign, allowHot, locks = {}, sub
         </fieldset>
       )}
       <Field label="Приоритет">
-        <select
-          className="input"
-          disabled={locks.priority}
-          value={values.priority}
-          onChange={(e) => set('priority', e.target.value as Priority)}
-        >
+        <select className="input" value={values.priority} onChange={(e) => set('priority', e.target.value as Priority)}>
           {priorities.map((priority) => (
             <option key={priority} value={priority} disabled={priority === 'hot' && !allowHot}>
               {PRIORITY_LABELS[priority]}
@@ -194,16 +175,15 @@ export function TaskForm({ initial, lookup, canAssign, allowHot, locks = {}, sub
       </Field>
       <div className="field-row">
         <Field label="Срок">
-          <input className="input" type="date" required disabled={locks.due} value={values.dueDate} onChange={(e) => set('dueDate', e.target.value)} />
+          <input className="input" type="date" required value={values.dueDate} onChange={(e) => set('dueDate', e.target.value)} />
         </Field>
         <Field label="Время (МСК)" hint="Необязательно">
-          <input className="input" type="time" disabled={locks.due} value={values.dueTime} onChange={(e) => set('dueTime', e.target.value)} />
+          <input className="input" type="time" value={values.dueTime} onChange={(e) => set('dueTime', e.target.value)} />
         </Field>
       </div>
       <label className="check-row">
         <input
           type="checkbox"
-          disabled={locks.main}
           checked={values.requiresDocument}
           onChange={(e) => set('requiresDocument', e.target.checked)}
         />

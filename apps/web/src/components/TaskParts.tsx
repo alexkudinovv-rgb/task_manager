@@ -1,5 +1,5 @@
-import { PRIORITY_LABELS, TASK_STATUS_LABELS, type Progress, type TaskStatus, type UserDto } from '@car-city/shared/model'
-import { fullName, initials, type TaskView } from '../workspace'
+import { PRIORITY_LABELS, TASK_STATUS_LABELS, type Progress, type Task, type TaskStatus, type UserDto } from '@car-city/shared/model'
+import { findUser, fullName, initials, type Lookup, type TaskView } from '../workspace'
 
 /** Statuses reuse the vehicle-class pastels from the guide. */
 export const STATUS_TONE: Record<TaskStatus, string> = {
@@ -72,6 +72,24 @@ export function OpenTitle({ view, onOpen, as: Tag = 'h3' }: { view: TaskView; on
         {view.task.title}
       </button>
     </Tag>
+  )
+}
+
+/** Subtasks inside the parent's panel: title opens the subtask, then responsible and status. */
+export function SubtaskList({ subtasks, lookup, onOpenTask }: { subtasks: Task[]; lookup: Lookup; onOpenTask: (id: string) => void }) {
+  return (
+    <ul className="panel-subtasks">
+      {subtasks.map((s) => (
+        <li key={s.id}>
+          <button type="button" className={`task-open task-title${s.status === 'done' ? ' is-finished' : ''}`} onClick={() => onOpenTask(s.id)}>
+            {s.title}
+          </button>
+          <span className="muted">
+            {fullName(findUser(lookup, s.responsibleId))} · {TASK_STATUS_LABELS[s.status]}
+          </span>
+        </li>
+      ))}
+    </ul>
   )
 }
 

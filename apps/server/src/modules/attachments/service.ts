@@ -3,6 +3,7 @@ import { desc, eq } from 'drizzle-orm'
 import type { Db } from '../../db/client'
 import { attachments, messages, type Attachment } from '../../db/schema'
 import { apiError } from '../../http/errors'
+import { publishTaskChanged } from '../chats/service'
 import { contextFrom, isUuid, loadFamily, lockTask, type Conn } from '../tasks/repository'
 
 const notFound = (message = 'Файл не найден') => apiError(404, 'not_found', { message })
@@ -63,7 +64,7 @@ export class AttachmentService {
 
   /** Records a stored file; re-checks under the task lock since the upload took a while. */
   async create(actor: Actor, taskId: string, file: NewFile): Promise<AttachmentDto> {
-    return this.db.transaction(async (tx) => {
+    const dto = await this.db.transaction(async (tx) => {
       await lockTask(tx, taskId)
       const task = await visibleTask(tx, actor, taskId)
       if (task.status === 'done') throw apiError(403, 'forbidden', { message: DONE_MESSAGE })
@@ -73,6 +74,8 @@ export class AttachmentService {
         .returning()
       return toAttachmentDto(row!)
     })
+    await this.announce(taskId)
+    return dto
   }
 
   /**
@@ -95,7 +98,7 @@ export class AttachmentService {
       throw apiError(403, 'forbidden', { message: 'Файл из чата удаляется вместе с сообщением' })
     }
     const taskId = found.taskId
-    return this.db.transaction(async (tx) => {
+    const storageKey = await this.db.transaction(async (tx) => {
       await lockTask(tx, taskId)
       const task = await visibleTask(tx, actor, taskId).catch(() => Promise.reject(notFound()))
       const [row] = await tx.select().from(attachments).where(eq(attachments.id, attachmentId))
@@ -106,6 +109,14 @@ export class AttachmentService {
       await tx.delete(attachments).where(eq(attachments.id, row.id))
       return row.storageKey
     })
+    await this.announce(taskId)
+    return storageKey
+  }
+
+  /** The file count is part of the task (a «нужен документ» task can be completed), so viewers refetch. */
+  private async announce(taskId: string): Promise<void> {
+    // The change is committed; clients catch up on their next reload or reconnect.
+    await publishTaskChanged(this.db, taskId).catch(() => {})
   }
 
   /** The task of a message's chat, null for the general chat; 404 for deleted messages. */

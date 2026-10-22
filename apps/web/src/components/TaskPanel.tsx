@@ -1,17 +1,10 @@
-import { useEffect, useRef, type ReactNode } from 'react'
-import {
-  TASK_STATUS_LABELS,
-  allowedActions,
-  checkHotLimit,
-  checkTransition,
-  type AllowedActions,
-  type UserDto,
-} from '@car-city/shared/model'
+import { useEffect, useRef } from 'react'
+import { allowedActions, checkHotLimit, checkTransition, type AllowedActions, type UserDto } from '@car-city/shared/model'
 import { DEMO } from '../api'
-import { formatDay } from '../dates'
-import { canViewerSee, findUser, fullName, visibilityContext, type Lookup, type TaskView } from '../workspace'
+import { canViewerSee, visibilityContext, type Lookup, type TaskView } from '../workspace'
+import { TaskSummary } from './InlineFields'
 import { LiveTask } from './LiveTask'
-import { StatusTag, TaskFlags } from './TaskParts'
+import { StatusTag, SubtaskList, TaskFlags } from './TaskParts'
 
 interface Props {
   view: TaskView
@@ -33,7 +26,6 @@ export function TaskPanel({ view, viewer, lookup, onClose, onOpenTask, onChanged
   const { task } = view
   const subtasks = (lookup.subtasksByParent.get(task.id) ?? []).filter((s) => !DEMO || canViewerSee(viewer, s, lookup))
   const parent = task.parentId ? lookup.tasks.get(task.parentId) : undefined
-  const responsiblePosition = view.responsible.positionId ? lookup.positions.get(view.responsible.positionId)?.name : null
 
   return (
     <dialog
@@ -59,66 +51,23 @@ export function TaskPanel({ view, viewer, lookup, onClose, onOpenTask, onChanged
             ← Подзадача в «{parent.title}»
           </button>
         )}
-        <h2 id="panel-title" className="panel-title">
-          {task.title}
-        </h2>
-        {task.description && <p className="panel-text">{task.description}</p>}
-
-        <dl className="panel-facts">
-          <Fact label="Ответственный">
-            {fullName(view.responsible)}
-            {responsiblePosition && <span className="muted"> · {responsiblePosition}</span>}
-          </Fact>
-          <Fact label="Постановщик">{fullName(view.author)}</Fact>
-          {view.coexecutors.length > 0 && <Fact label="Соисполнители">{view.coexecutors.map(fullName).join(', ')}</Fact>}
-          <Fact label="Подразделение">{view.unit?.name ?? '—'}</Fact>
-          <Fact label="Срок">
-            <span className={`mono due${view.overdue ? ' is-overdue' : ''}`}>{view.dueLabel}</span>
-          </Fact>
-          <Fact label="Создана">{formatDay(task.createdAt)}</Fact>
-          {task.completedAt && <Fact label={task.cancelled ? 'Отменена' : 'Завершена'}>{formatDay(task.completedAt)}</Fact>}
-          {task.requiresDocument && (
-            <Fact label="Документ">{task.attachmentCount > 0 ? 'Приложен' : 'Нужен, пока не приложен'}</Fact>
-          )}
-          <Fact label="Прогресс">
-            подзадачи {task.subtasks.done}/{task.subtasks.total} · чек-лист {task.checklist.done}/{task.checklist.total}
-          </Fact>
-        </dl>
-
-        {subtasks.length > 0 && (
-          <section className="panel-section">
-            <h3 className="mono-label">Подзадачи</h3>
-            <ul className="panel-subtasks">
-              {subtasks.map((s) => (
-                <li key={s.id}>
-                  <button type="button" className={`task-open task-title${s.status === 'done' ? ' is-finished' : ''}`} onClick={() => onOpenTask(s.id)}>
-                    {s.title}
-                  </button>
-                  <span className="muted">
-                    {fullName(findUser(lookup, s.responsibleId))} · {TASK_STATUS_LABELS[s.status]}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
 
         {DEMO ? (
-          <DemoActions view={view} viewer={viewer} lookup={lookup} />
+          <>
+            <TaskSummary view={view} viewer={viewer} lookup={lookup} onOpenTask={onOpenTask} />
+            {subtasks.length > 0 && (
+              <section className="panel-section">
+                <h3 className="mono-label">Подзадачи</h3>
+                <SubtaskList subtasks={subtasks} lookup={lookup} onOpenTask={onOpenTask} />
+              </section>
+            )}
+            <DemoActions view={view} viewer={viewer} lookup={lookup} />
+          </>
         ) : (
-          <LiveTask view={view} viewer={viewer} lookup={lookup} onChanged={onChanged} onOpenTask={onOpenTask} />
+          <LiveTask view={view} viewer={viewer} lookup={lookup} subtasks={subtasks} onChanged={onChanged} onOpenTask={onOpenTask} />
         )}
       </div>
     </dialog>
-  )
-}
-
-function Fact({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="panel-fact">
-      <dt className="mono-label">{label}</dt>
-      <dd>{children}</dd>
-    </div>
   )
 }
 

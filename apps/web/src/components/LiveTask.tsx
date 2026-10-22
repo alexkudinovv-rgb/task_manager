@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import {
   DueChangeRequestInput,
   canCreateSubtask,
-  canCreateTask,
+  type Task,
   type TaskDetailsDto,
   type TaskEvent,
   type TaskEventDto,
@@ -11,17 +11,21 @@ import {
 } from '@car-city/shared/model'
 import { serverApi } from '../api'
 import { Attachments } from '../attachments/Attachments'
-import { ChatPanel } from '../chat'
+import { ChatPanel, useLive } from '../chat'
 import { FormError } from '../api/errors'
 import { formatDay } from '../dates'
 import { findUser, fullName, type Lookup, type TaskView } from '../workspace'
-import { TaskForm, newTaskValues, taskValues, toCreateInput, toUpdateInput, type TaskFormValues } from './TaskForm'
+import { TaskSummary } from './InlineFields'
+import { TaskForm, newTaskValues, toCreateInput, type TaskFormValues } from './TaskForm'
+import { SubtaskList } from './TaskParts'
 import { ErrorNote, Field, formatMoment, useAction } from './ui'
 
 interface Props {
   view: TaskView
   viewer: UserDto
   lookup: Lookup
+  /** Visible subtasks from the workspace. */
+  subtasks: Task[]
   /** Reloads the workspace after a change. */
   onChanged: () => Promise<void>
   onOpenTask: (id: string) => void
@@ -35,8 +39,8 @@ interface SectionProps {
   onOpenTask: (id: string) => void
 }
 
-/** Real-mode part of the task panel: details from GET /api/tasks/:id and the actions it allows. */
-export function LiveTask({ view, viewer, lookup, onChanged, onOpenTask }: Props) {
+/** Real-mode body of the task panel: details from GET /api/tasks/:id and the actions it allows. */
+export function LiveTask({ view, viewer, lookup, subtasks, onChanged, onOpenTask }: Props) {
   const taskId = view.task.id
   const [details, setDetails] = useState<TaskDetailsDto | null>(null)
   const [loadError, setLoadError] = useState<unknown>(null)
@@ -58,16 +62,42 @@ export function LiveTask({ view, viewer, lookup, onChanged, onOpenTask }: Props)
     await Promise.all([load(), onChanged()])
   }, [load, onChanged])
 
+  // Someone else changed this task (or a subtask of it): refetch the details and the file list.
+  // The workspace itself is reloaded by MainScreen on the same event.
+  const [revision, setRevision] = useState(0)
+  useLive(
+    (event) => {
+      if (event.type !== 'task.changed' || event.taskId !== taskId) return
+      void load()
+      setRevision((n) => n + 1)
+    },
+    { onReconnect: () => void load() },
+  )
+
+  // Title, facts and subtasks come from the workspace, so they show before the details arrive.
+  const summary = (
+    <>
+      <TaskSummary view={view} viewer={viewer} lookup={lookup} allowed={details?.allowedActions} refresh={refresh} onOpenTask={onOpenTask} />
+      <Subtasks subtasks={subtasks} details={details} viewer={viewer} lookup={lookup} refresh={refresh} onOpenTask={onOpenTask} />
+    </>
+  )
+
   if (!details) {
-    return <section className="panel-section">{loadError ? <ErrorNote error={loadError} /> : <p className="muted">Загрузка…</p>}</section>
+    return (
+      <>
+        {summary}
+        <section className="panel-section">{loadError ? <ErrorNote error={loadError} /> : <p className="muted">Загрузка…</p>}</section>
+      </>
+    )
   }
 
   const props: SectionProps = { details, viewer, lookup, refresh, onOpenTask }
-  // Chat (`comment`) is not built yet, so it does not count as an action here.
+  // Writing in the chat does not make the task editable.
   const canAct = Object.entries(details.allowedActions).some(([key, on]) => on && key !== 'comment')
   const readOnly = !canAct && details.checklist.length === 0 && !details.pendingDueRequest
   return (
     <>
+      {summary}
       <StatusActions {...props} />
       <DueRequest {...props} />
       <Checklist {...props} />
@@ -80,13 +110,12 @@ export function LiveTask({ view, viewer, lookup, onChanged, onOpenTask }: Props)
         }
         onChanged={() => void refresh()}
         userName={(id) => fullName(findUser(lookup, id))}
+        revision={revision}
       />
       <section className="panel-section">
         <span className="mono-label">Обсуждение</span>
         <ChatPanel chatKey={details.task.id} readOnly={!details.allowedActions.comment} users={[...lookup.users.values()]} me={viewer} />
       </section>
-      <EditTask {...props} />
-      <AddSubtask {...props} />
       {readOnly && (
         <section className="panel-section">
           <p className="muted">Только просмотр.</p>
@@ -353,83 +382,50 @@ function Checklist({ details, refresh }: SectionProps) {
   )
 }
 
-function EditTask({ details, viewer, lookup, refresh, onOpenTask }: SectionProps) {
-  const { task, allowedActions: allowed } = details
+type SubtasksProps = Omit<SectionProps, 'details'> & { details: TaskDetailsDto | null; subtasks: Task[] }
+
+/** The list, then «Добавить подзадачу» for whoever drives the task. */
+function Subtasks({ subtasks, details, viewer, lookup, refresh, onOpenTask }: SubtasksProps) {
   const [open, setOpen] = useState(false)
-  if (!allowed.edit && !allowed.changeDue && !allowed.setPriority && !allowed.manageCoexecutors) return null
+  const canAdd = details?.allowedActions.addSubtask ?? false
+  if (subtasks.length === 0 && !canAdd) return null
 
-  const locks = { main: !allowed.edit, due: !allowed.changeDue, priority: !allowed.setPriority, coexecutors: !allowed.manageCoexecutors }
-  const before = taskValues(task)
-
-  async function save(after: TaskFormValues) {
-    const patch = toUpdateInput(before, after, locks)
-    if (Object.keys(patch).length > 0) await serverApi.updateTask(task.id, patch)
-    if (!locks.coexecutors && !sameIds(before.coexecutorIds, after.coexecutorIds)) {
-      await serverApi.setCoexecutors(task.id, { userIds: after.coexecutorIds })
-    }
-    setOpen(false)
-    await refresh()
-  }
-
-  return (
-    <section className="panel-section">
-      {open ? (
-        <>
-          <h3 className="mono-label">{allowed.edit ? 'Изменить задачу' : 'Соисполнители'}</h3>
-          <TaskForm
-            initial={before}
-            lookup={lookup}
-            canAssign={(user) => canCreateTask(viewer, user.id, user.role)}
-            allowHot={allowed.setHot}
-            locks={locks}
-            submitLabel="Сохранить"
-            onSubmit={save}
-            onCancel={() => setOpen(false)}
-            onOpenTask={onOpenTask}
-          />
-        </>
-      ) : (
-        <div className="panel-actions">
-          <button type="button" className="chip" onClick={() => setOpen(true)}>
-            {allowed.edit ? 'Изменить задачу' : 'Соисполнители'}
-          </button>
-        </div>
-      )}
-    </section>
-  )
-}
-
-function AddSubtask({ details, viewer, lookup, refresh, onOpenTask }: SectionProps) {
-  const { task, allowedActions: allowed } = details
-  const [open, setOpen] = useState(false)
-  if (!allowed.addSubtask) return null
+  const done = subtasks.filter((s) => s.status === 'done').length
 
   async function create(values: TaskFormValues) {
-    await serverApi.createTask(toCreateInput(values, task.id))
+    if (!details) return
+    await serverApi.createTask(toCreateInput(values, details.task.id))
     setOpen(false)
     await refresh()
   }
 
   return (
     <section className="panel-section">
-      {open ? (
-        <>
-          <h3 className="mono-label">Новая подзадача</h3>
-          <TaskForm
-            initial={newTaskValues(viewer.id)}
-            lookup={lookup}
-            canAssign={(user) => canCreateSubtask(viewer, task, user.role)}
-            allowHot={viewer.role === 'owner'}
-            submitLabel="Создать подзадачу"
-            onSubmit={create}
-            onCancel={() => setOpen(false)}
-            onOpenTask={onOpenTask}
-          />
-        </>
-      ) : (
+      <h3 className="mono-label">
+        Подзадачи{' '}
+        {subtasks.length > 0 && (
+          <span className="mono muted">
+            {done}/{subtasks.length}
+          </span>
+        )}
+      </h3>
+      {subtasks.length > 0 && <SubtaskList subtasks={subtasks} lookup={lookup} onOpenTask={onOpenTask} />}
+      {details && canAdd && open && (
+        <TaskForm
+          initial={newTaskValues(viewer.id)}
+          lookup={lookup}
+          canAssign={(user) => canCreateSubtask(viewer, details.task, user.role)}
+          allowHot={viewer.role === 'owner'}
+          submitLabel="Создать подзадачу"
+          onSubmit={create}
+          onCancel={() => setOpen(false)}
+          onOpenTask={onOpenTask}
+        />
+      )}
+      {canAdd && !open && (
         <div className="panel-actions">
           <button type="button" className="chip" onClick={() => setOpen(true)}>
-            Добавить подзадачу
+            + Добавить подзадачу
           </button>
         </div>
       )}
@@ -476,8 +472,4 @@ function History({ events, lookup }: { events: TaskEventDto[]; lookup: Lookup })
       </ul>
     </section>
   )
-}
-
-function sameIds(a: string[], b: string[]): boolean {
-  return a.length === b.length && a.every((id) => b.includes(id))
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { canCreateTask, type Task, type WorkspaceDto } from '@car-city/shared/model'
 import { DEMO, api, serverApi } from '../api'
 import { errorMessage, isUnauthorized } from '../api/errors'
@@ -10,7 +10,9 @@ import { TasksPage } from './TasksPage'
 import { Sheet } from './ui'
 import { UsersPage } from './UsersPage'
 import { OfflineBanner, PushSettings, UpdatePrompt } from '../pwa'
-import { GeneralChatPage, useUnread } from '../chat'
+import { GeneralChatPage, useLive, useUnread } from '../chat'
+
+const LIVE_RELOAD_DEBOUNCE_MS = 300
 
 /** Loads the workspace (mock in the demo, GET /api/workspace otherwise) and lays out the app. */
 export function MainScreen({ onSignedOut }: { onSignedOut: () => void }) {
@@ -29,6 +31,21 @@ export function MainScreen({ onSignedOut }: { onSignedOut: () => void }) {
   useEffect(() => {
     void reload()
   }, [reload])
+
+  // Live: a task someone else created or changed shows up without F5.
+  // A burst of events (a change and its subtask's parent) costs one reload.
+  const reloadTimer = useRef<number | undefined>(undefined)
+  const reloadSoon = useCallback(() => {
+    window.clearTimeout(reloadTimer.current)
+    reloadTimer.current = window.setTimeout(() => void reload(), LIVE_RELOAD_DEBOUNCE_MS)
+  }, [reload])
+  useEffect(() => () => window.clearTimeout(reloadTimer.current), [])
+  useLive(
+    (event) => {
+      if (event.type === 'task.changed') reloadSoon()
+    },
+    { onReconnect: reloadSoon },
+  )
 
   const lookup = useMemo(() => (workspace ? buildLookup(workspace, new Date()) : null), [workspace])
 
@@ -90,7 +107,11 @@ function Shell({ workspace, lookup, reload, refreshError, onSignedOut }: ShellPr
     <div className="app">
       <Sidebar
         section={section}
-        onSection={setSection}
+        onSection={(next) => {
+          setSection(next)
+          // Coming back to the board after a while: catch up in case a live event was missed.
+          if (next === 'tasks' && !DEMO) void reload()
+        }}
         canManageUsers={canManageUsers}
         units={unitCounts}
         activeUnitId={unitId}

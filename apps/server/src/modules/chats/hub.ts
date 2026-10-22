@@ -24,7 +24,7 @@ export const SESSION_ENDED_CODE = 4401
  *   liveHub.broadcast(event)         sends it to everyone connected
  *   liveHub.connected()              who is online (id + role), to filter by visibility before publishing
  * Visibility-aware wrappers live in ./service.ts: publishToChat(db, chatKey, event) and
- * publishToTaskViewers(db, taskId, event), e.g. for { type: 'task.changed', taskId }.
+ * publishTaskChanged(db, taskId, alsoTo) for { type: 'task.changed', taskId }.
  */
 export class LiveHub {
   private readonly entries = new Map<WebSocket, Entry>()

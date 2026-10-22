@@ -27,6 +27,7 @@ import { and, eq, inArray } from 'drizzle-orm'
 import type { Db } from '../../db/client'
 import { checklistItems, dueChangeRequests, taskCoexecutors, tasks, type NewTask } from '../../db/schema'
 import { apiError } from '../../http/errors'
+import { connectedViewers, publishTaskChanged } from '../chats/service'
 import { EventLog } from './events'
 import { toChecklistItemDto, toDirectoryItem, toDueRequestDto, toEventDto, toHhmm, toUserDto } from './mapping'
 import {
@@ -131,7 +132,7 @@ export class TaskService {
   // ---------- tasks ----------
 
   async create(actor: Actor, input: CreateTaskInput): Promise<Task> {
-    return this.run(async (tx, guard) => {
+    const created = await this.run(async (tx, guard) => {
       const responsible = await findUser(tx, input.responsibleId)
       if (!responsible || responsible.disabledAt) throw invalid('Ответственный не найден')
 
@@ -206,6 +207,8 @@ export class TaskService {
       if (draft.priority === 'hot') await log.record(task, 'hot_set', { from: null })
       return reload(tx, task.id)
     })
+    await this.announce(created.id, created.parentId, [])
+    return created
   }
 
   async update(actor: Actor, taskId: string, input: UpdateTaskInput): Promise<Task> {
@@ -471,14 +474,33 @@ export class TaskService {
     return item.taskId
   }
 
-  /** Locks the task, checks visibility (404) and runs `fn` in one transaction. */
+  /** Locks the task, checks visibility (404) and runs `fn` in one transaction; then tells connected viewers. */
   private async mutate<T>(actor: Actor, taskId: string, fn: (m: Mutation) => Promise<T>): Promise<T> {
     if (!isUuid(taskId)) throw notFound()
-    return this.run(async (tx, guard) => {
+    let parentId: string | null = null
+    let viewersBefore: string[] = []
+    const result = await this.run(async (tx, guard) => {
       await lockTask(tx, taskId)
       const view = await this.view(tx, actor, taskId)
+      parentId = view.task.parentId
+      viewersBefore = connectedViewers(view.task, view.ctx)
       return fn({ tx, view, guard, allowed: allowedActions(actor, view.task, view.ctx), log: new EventLog(tx, actor) })
     })
+    await this.announce(taskId, parentId, viewersBefore)
+    return result
+  }
+
+  /**
+   * After the commit: `task.changed` for the task (to its viewers and to whoever saw it before, so a task
+   * that moved away disappears from their board) and for the parent, whose progress counts subtasks.
+   */
+  private async announce(taskId: string, parentId: string | null, viewersBefore: string[]): Promise<void> {
+    try {
+      await publishTaskChanged(this.db, taskId, viewersBefore)
+      if (parentId !== null) await publishTaskChanged(this.db, parentId)
+    } catch {
+      // The change is committed; clients catch up on their next reload or reconnect.
+    }
   }
 
   /** A transaction whose unique violations (concurrent writers) become the same 409s as the pre-checks. */

@@ -654,7 +654,13 @@ button {
 
 /* List */
 
+/*
+ * Breakpoints follow the list's own width (container queries), so the sidebar does not matter:
+ * ≥ 990px every column; narrower drops «Прогресс»; under 860px each row becomes a card.
+ * 860 = 24 + 22 + 16 + 240 (title minimum) + 16 + 132 + 16 + 190 + 16 + 160 + 24.
+ */
 .list {
+  container: list / inline-size;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -663,9 +669,13 @@ button {
 .list-columns,
 .list-row {
   display: grid;
-  grid-template-columns: 22px minmax(0, 1fr) 132px 190px 160px 110px;
+  grid-template-columns: 22px minmax(240px, 1fr) 132px 190px 160px 110px;
   gap: 16px;
   align-items: center;
+}
+
+.list-row-facts {
+  display: contents;
 }
 
 .list-columns {
@@ -749,8 +759,83 @@ button {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
   font-size: 14px;
   color: var(--ink);
+}
+
+.list-row-owner-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+@container list (max-width: 989px) {
+  .list-columns,
+  .list-row {
+    grid-template-columns: 22px minmax(240px, 1fr) 132px 190px 160px;
+  }
+
+  .list-row-progress {
+    display: none;
+  }
+}
+
+@container list (max-width: 859px) {
+  .list-columns {
+    display: none;
+  }
+
+  .list-row {
+    grid-template-columns: 22px minmax(0, 1fr);
+    gap: 6px 12px;
+    align-items: start;
+    padding: 14px 16px;
+  }
+
+  .list-row .check {
+    margin-top: 1px;
+  }
+
+  .list-row-title .task-open {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .list-row-facts {
+    grid-column: 2;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+    min-width: 0;
+    font-size: 13px;
+  }
+
+  .list-row-facts .tag {
+    height: 22px;
+    padding: 0 8px;
+    font-size: 10px;
+  }
+
+  .list-row-facts .list-row-owner {
+    gap: 0;
+    font-size: 13px;
+  }
+
+  .list-row-facts .avatar {
+    display: none;
+  }
+
+  .list-row-facts > :not(:first-child)::before {
+    content: '·';
+    margin-right: 10px;
+    color: var(--text-faint);
+  }
+
+  .list-group-head {
+    padding: 14px 16px;
+  }
 }
 
 .check {
@@ -822,8 +907,97 @@ button {
   color: var(--ink);
 }
 
+.panel-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.panel-title-row[hidden] {
+  display: none;
+}
+
+.panel-title-row .edit-button {
+  margin-top: 4px;
+}
+
+.panel-description {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.panel-description .mono-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  margin: 0;
+}
+
+.panel-description .inline-edit {
+  align-self: stretch;
+}
+
 .panel-text {
   margin: 0;
+  color: var(--ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.panel-text.is-clamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+  line-clamp: 6;
+  overflow: hidden;
+}
+
+/* Inline editing: the pencil shows on hover or focus, always on touch screens. */
+
+.edit-button {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: -6px 0 -6px 2px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-faint);
+  vertical-align: middle;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.edit-button:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+.edit-button:focus-visible,
+.panel-fact:hover .edit-button,
+.panel-title-row:hover .edit-button,
+.panel-description:hover .edit-button {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .edit-button {
+    opacity: 1;
+  }
+}
+
+.inline-edit {
+  gap: 10px;
+}
+
+.inline-edit .checks {
+  max-height: 240px;
+  overflow-y: auto;
 }
 
 .panel-facts {
@@ -1566,23 +1740,5 @@ button.sidebar-link {
   .panel-fact {
     grid-template-columns: 1fr;
     gap: 4px;
-  }
-
-  .list-columns {
-    display: none;
-  }
-
-  .list-row {
-    grid-template-columns: 22px minmax(0, 1fr) auto;
-    gap: 8px 12px;
-    padding: 14px 16px;
-  }
-
-  .list-row > :nth-child(n + 4) {
-    grid-column: 2 / -1;
-  }
-
-  .list-group-head {
-    padding: 14px 16px;
   }
 }

@@ -1,10 +1,9 @@
 /* Chat panel: task chats (inside the task sheet) and the general chat page. Tokens from styles.css. */
 
+/* In a task the chat is as tall as its messages, up to the list's max-height; the general chat page fixes the height. */
 .chat {
   display: flex;
   flex-direction: column;
-  height: 460px;
-  min-height: 300px;
   overflow: hidden;
   border-radius: 20px;
   background: var(--surface);
@@ -16,6 +15,7 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
+  max-height: 420px;
   padding: 10px 8px;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -23,7 +23,7 @@
 
 .chat-empty {
   margin: auto;
-  padding: 24px;
+  padding: 2px 12px;
   color: var(--text-faint);
   font-size: 14px;
   text-align: center;
@@ -301,9 +301,14 @@
 }
 
 .chat-hint {
+  display: none;
   margin: 6px 4px 0;
   color: var(--text-faint);
   font-size: 11px;
+}
+
+.chat-composer:focus-within .chat-hint {
+  display: block;
 }
 
 .chat-composer .error-note {
@@ -399,6 +404,14 @@
   box-shadow: var(--shadow-card);
 }
 
+.chat-page .chat-list {
+  max-height: none;
+}
+
+.chat-page .chat-empty {
+  padding: 24px;
+}
+
 @media (max-width: 640px) {
   .chat {
     border-radius: 16px;
@@ -409,7 +422,7 @@
     min-height: 360px;
   }
 
-  .chat-hint {
+  .chat-composer:focus-within .chat-hint {
     display: none;
   }
 }

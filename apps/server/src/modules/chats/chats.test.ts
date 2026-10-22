@@ -353,5 +353,37 @@ describe.skipIf(!TEST_DATABASE_URL)('chats API', { timeout: 20_000 }, () => {
         gamma.socket.close()
       }
     })
+
+    it('tells task viewers about changes, including whoever just lost the task', async () => {
+      const beta = await connect('beta')
+      const gamma = await connect('gamma')
+      try {
+        const task = await createTask('alpha', ids.beta)
+        expect(await beta.next()).toEqual({ type: 'task.changed', taskId: task.id })
+
+        // Neither of them sees the private task, so this one reaches nobody.
+        const hidden = await call('alpha', 'PATCH', `/api/tasks/${privateTask.id}`, { title: 'Личное' })
+        expect(hidden.statusCode, hidden.body).toBe(200)
+
+        const moved = await call('alpha', 'PATCH', `/api/tasks/${task.id}`, { responsibleId: ids.gamma })
+        expect(moved.statusCode, moved.body).toBe(200)
+        expect(await beta.next()).toEqual({ type: 'task.changed', taskId: task.id })
+        expect(await gamma.next()).toEqual({ type: 'task.changed', taskId: task.id })
+
+        // A subtask changes its parent's progress, so the parent's viewers hear about both.
+        const sub = await call('gamma', 'POST', '/api/tasks', {
+          title: 'Подзадача',
+          dueDate: '2026-11-20',
+          responsibleId: ids.gamma,
+          parentId: task.id,
+        })
+        expect(sub.statusCode, sub.body).toBe(201)
+        expect(await gamma.next()).toEqual({ type: 'task.changed', taskId: sub.json<Task>().id })
+        expect(await gamma.next()).toEqual({ type: 'task.changed', taskId: task.id })
+      } finally {
+        beta.socket.close()
+        gamma.socket.close()
+      }
+    })
   })
 })

@@ -14,6 +14,8 @@ interface Props {
   onChanged?: () => void
   /** Display name for the uploader; without it the uploader is not shown. */
   userName?: (userId: string) => string
+  /** Bumped when someone else changed the task: the list is refetched in place. */
+  revision?: number
 }
 
 interface Upload {
@@ -56,7 +58,7 @@ function kindOf(a: AttachmentDto): { label: string; tone: string } {
 const isAbort = (error: unknown) => error instanceof DOMException && error.name === 'AbortError'
 
 /** Task files: list with previews, upload (button or drag-and-drop) with progress, delete. */
-export function Attachments({ taskId, canUpload, canDelete, onChanged, userName }: Props) {
+export function Attachments({ taskId, canUpload, canDelete, onChanged, userName, revision = 0 }: Props) {
   const [items, setItems] = useState<AttachmentDto[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -83,6 +85,10 @@ export function Attachments({ taskId, canUpload, canDelete, onChanged, userName 
     setActionError(null)
     void load()
   }, [load])
+
+  useEffect(() => {
+    if (revision > 0) void load()
+  }, [revision, load])
 
   // Leaving the task cancels uploads still in flight.
   useEffect(() => {

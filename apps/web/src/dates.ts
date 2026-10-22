@@ -36,12 +36,15 @@ export function formatDay(iso: string): string {
   return `${date.getUTCDate()} ${MONTHS[date.getUTCMonth()]}`
 }
 
-/** "Сегодня, 18:00", "Завтра", "30 окт", "18 окт · −2 дня". */
-export function formatDue(task: Pick<Task, 'dueDate' | 'dueTime'>, today: string, overdue: boolean): string {
+/**
+ * "Сегодня, 18:00", "Завтра", "30 окт", "18 окт · −2 дня". Cards show the time only for today and
+ * tomorrow; `withTime` (the task panel) shows it for any day: "30 окт, 15:30".
+ */
+export function formatDue(task: Pick<Task, 'dueDate' | 'dueTime'>, today: string, overdue: boolean, withTime = false): string {
   const diff = daysBetween(today, task.dueDate)
   const time = task.dueTime ? `, ${task.dueTime}` : ''
   if (diff === 0) return `Сегодня${time}`
   if (diff === 1) return `Завтра${time}`
-  const label = formatDay(task.dueDate)
+  const label = `${formatDay(task.dueDate)}${withTime ? time : ''}`
   return overdue ? `${label} · −${-diff} ${plural(-diff, ['день', 'дня', 'дней'])}` : label
 }

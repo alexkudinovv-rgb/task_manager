@@ -7,7 +7,9 @@ import {
   type MessageDto,
   type MessageInput,
   type MessagesPage,
+  type Task,
   type UnreadDto,
+  type VisibilityContext,
   type WsEvent,
 } from '@car-city/shared/model'
 import { and, count, desc, eq, getTableColumns, gt, inArray, isNull, lt, ne, or, sql, type SQL } from 'drizzle-orm'
@@ -71,8 +73,25 @@ export async function publishToChat(conn: Conn, chatKey: string, event: WsEvent)
   if (audience) publishTo(audience, event)
 }
 
-/** Sends `event` to every connected user who can see the task, e.g. { type: 'task.changed', taskId }. */
-export const publishToTaskViewers = (conn: Conn, taskId: string, event: WsEvent) => publishToChat(conn, taskId, event)
+/** Connected users who can see the task, taken before a change that may hide it from some of them. */
+export function connectedViewers(task: Task, ctx: VisibilityContext): string[] {
+  return liveHub
+    .connected()
+    .filter((actor) => canSee(actor, task, ctx))
+    .map((actor) => actor.id)
+}
+
+/** { type: 'task.changed' } to every connected user who sees the task now, plus `alsoTo` (who saw it before). */
+export async function publishTaskChanged(conn: Conn, taskId: string, alsoTo: string[] = []): Promise<void> {
+  const audience = await audienceOf(conn, taskId)
+  const viewers = audience
+    ? liveHub
+        .connected()
+        .filter(audience.sees)
+        .map((actor) => actor.id)
+    : []
+  liveHub.publish([...alsoTo, ...viewers], { type: 'task.changed', taskId })
+}
 
 /** For the heartbeat: the session behind a socket still exists and its user is active. */
 export async function sessionAlive(conn: Conn, sessionId: string): Promise<boolean> {
