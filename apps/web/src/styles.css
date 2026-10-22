@@ -120,6 +120,56 @@ button {
   flex-direction: column;
 }
 
+/* Phone-only parts of the navigation (see the 900px block). */
+.mobile-bar,
+.sidebar-backdrop,
+.sidebar-close {
+  display: none;
+}
+
+.sidebar-close {
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-left: auto;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.mobile-bar-menu {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.mobile-bar-dot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--signal);
+  box-shadow: 0 0 0 2px var(--graphite);
+}
+
+.mobile-bar img {
+  border-radius: 50%;
+}
+
+.mobile-bar-title {
+  font: 400 17px/1.2 var(--font-display);
+  letter-spacing: -0.01em;
+}
+
 .sidebar-brand-name {
   font: 400 15px/1.3 var(--font-display);
   letter-spacing: -0.02em;
@@ -1635,22 +1685,6 @@ button.sidebar-link {
 /* Phones: sidebar becomes a top bar, list rows stack. */
 
 @media (max-width: 900px) {
-  .sidebar-user {
-    flex-direction: row;
-    flex: none;
-    margin-left: auto;
-  }
-
-  .sidebar-user .sidebar-divider,
-  .sidebar-user-name {
-    display: none;
-  }
-
-  .sidebar-user .sidebar-sublink {
-    width: auto;
-    white-space: nowrap;
-  }
-
   .user-row {
     grid-template-columns: 28px minmax(0, 1fr);
     padding: 14px 16px;
@@ -1694,24 +1728,54 @@ button.sidebar-link {
     gap: 12px;
   }
 
-  .sidebar {
-    position: static;
-    flex: none;
-    flex-direction: row;
+  /* Phone: a slim bar on top; the full sidebar slides in from the left as a drawer. */
+  .mobile-bar {
+    position: sticky;
+    top: 8px;
+    z-index: 20;
+    display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px;
-    overflow-x: auto;
+    gap: 10px;
+    padding: 6px 14px 6px 6px;
+    border-radius: 18px;
+    background: var(--graphite);
+    color: #fff;
   }
 
-  .sidebar-brand {
-    padding: 0 8px 0 4px;
+  .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 40;
+    width: min(300px, 86vw);
+    padding-top: max(16px, env(safe-area-inset-top));
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    border-radius: 0 24px 24px 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    transform: translateX(-105%);
+    visibility: hidden;
+    transition:
+      transform 0.22s ease,
+      visibility 0.22s;
   }
 
-  .sidebar-brand > div,
-  .sidebar-units,
-  .sidebar-link.is-soon {
-    display: none;
+  .sidebar.is-open {
+    transform: none;
+    visibility: visible;
+  }
+
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    display: block;
+    background: rgba(15, 17, 21, 0.4);
+  }
+
+  .sidebar-close {
+    display: grid;
   }
 
   .main {
@@ -1740,5 +1804,14 @@ button.sidebar-link {
   .panel-fact {
     grid-template-columns: 1fr;
     gap: 4px;
+  }
+}
+
+/* iOS zooms into any field under 16px on focus and stays zoomed afterwards. */
+@media (hover: none), (max-width: 640px) {
+  .input:not(.code-input),
+  .search input,
+  .viewer select {
+    font-size: 16px;
   }
 }

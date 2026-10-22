@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { LOGO_URL } from '../brand'
 
 /** Centered Car City card for the screens before the app: login and invite. */
 export function AuthShell({ title, lead, children }: { title: ReactNode; lead?: ReactNode; children: ReactNode }) {
@@ -6,7 +7,7 @@ export function AuthShell({ title, lead, children }: { title: ReactNode; lead?: 
     <div className="auth">
       <div className="card auth-card">
         <div className="auth-brand">
-          <img src={`${import.meta.env.BASE_URL}logo.png`} alt="" width="40" height="40" />
+          <img src={LOGO_URL} alt="" width="40" height="40" />
           <div>
             <span className="auth-brand-name">Car City</span>
             <span className="mono-label auth-brand-sub">Задачи</span>

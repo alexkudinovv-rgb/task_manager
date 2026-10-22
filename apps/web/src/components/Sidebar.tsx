@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react'
 import type { DirectoryItem, UserDto } from '@car-city/shared/model'
+import { LOGO_URL } from '../brand'
 import { fullName } from '../workspace'
 import { ChatIcon } from './TaskParts'
 
@@ -23,16 +25,76 @@ interface Props {
 
 const SOON = 'Появится в следующих версиях'
 
+const SECTION_TITLES: Record<Section, string> = {
+  tasks: 'Задачи',
+  users: 'Пользователи',
+  settings: 'Уведомления',
+  chat: 'Общий чат',
+}
+
+/** Sections on the left; on a phone a slim top bar whose menu button slides the same panel in. */
 export function Sidebar(props: Props) {
+  const { section, chatUnread } = props
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    document.addEventListener('keydown', onKey)
+    // The page under the drawer stays put while it is open.
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = ''
+    }
+  }, [open])
+
+  return (
+    <>
+      <header className="mobile-bar">
+        <button
+          type="button"
+          className="mobile-bar-menu"
+          aria-label={chatUnread > 0 ? `Меню, непрочитанных в общем чате: ${chatUnread}` : 'Меню'}
+          aria-expanded={open}
+          aria-controls="app-sidebar"
+          onClick={() => setOpen(true)}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+            <path d="M4 7h16M4 12h16M4 17h16" />
+          </svg>
+          {chatUnread > 0 && <span className="mobile-bar-dot" aria-hidden="true" />}
+        </button>
+        <img src={LOGO_URL} alt="" width="32" height="32" />
+        <span className="mobile-bar-title">{SECTION_TITLES[section]}</span>
+      </header>
+      {open && <div className="sidebar-backdrop" aria-hidden="true" onClick={() => setOpen(false)} />}
+      <nav
+        id="app-sidebar"
+        className={`sidebar${open ? ' is-open' : ''}`}
+        aria-label="Разделы"
+        // On a phone any choice in the drawer also closes it.
+        onClick={(e) => (e.target as HTMLElement).closest('button') && setOpen(false)}
+      >
+        <SidebarContent {...props} />
+      </nav>
+    </>
+  )
+}
+
+function SidebarContent(props: Props) {
   const { section, onSection, canManageUsers, units, activeUnitId, onSelectUnit, taskCount, chatUnread, me } = props
   return (
-    <nav className="sidebar" aria-label="Разделы">
+    <>
       <div className="sidebar-brand">
-        <img src={`${import.meta.env.BASE_URL}logo.png`} alt="" width="40" height="40" />
+        <img src={LOGO_URL} alt="" width="40" height="40" />
         <div>
           <span className="sidebar-brand-name">Car City</span>
           <span className="sidebar-brand-sub">Задачи</span>
         </div>
+        <button type="button" className="sidebar-close" aria-label="Закрыть меню">
+          ✕
+        </button>
       </div>
 
       <div className="sidebar-main">
@@ -148,6 +210,6 @@ export function Sidebar(props: Props) {
           </button>
         </div>
       )}
-    </nav>
+    </>
   )
 }

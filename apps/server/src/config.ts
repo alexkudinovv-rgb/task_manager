@@ -12,7 +12,8 @@ const ConfigSchema = z.object({
   /** Web push (VAPID). Without both keys push is off and /api/push/public-key returns null. */
   VAPID_PUBLIC_KEY: z.string().min(1).optional(),
   VAPID_PRIVATE_KEY: z.string().min(1).optional(),
-  VAPID_SUBJECT: z.string().min(1).default('mailto:admin@car-city.local'),
+  /** Contact in the VAPID token, mailto: or https:. Defaults to PUBLIC_URL; Apple rejects made-up ones (*.local). */
+  VAPID_SUBJECT: z.string().min(1).optional(),
   /** Where task files live: a local folder (dev, a mounted volume) or S3-compatible storage (production). */
   FILE_STORAGE: z.enum(['local', 's3']).default('local'),
   FILE_STORAGE_DIR: z.string().min(1).default('./storage'),

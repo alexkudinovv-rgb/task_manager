@@ -7,7 +7,7 @@ import { hashToken } from '../../auth'
 import { loadConfig } from '../../config'
 import { pushSubscriptions, sessions, users } from '../../db/schema'
 import { createTestDb, TEST_DATABASE_URL, type TestDb } from '../../test/test-db'
-import { isAllowedEndpoint, sendPushToUsers } from './service'
+import { isAllowedEndpoint, sendPushToUsers, vapidSubject } from './service'
 
 const webpush = vi.hoisted(() => ({ setVapidDetails: vi.fn(), sendNotification: vi.fn() }))
 vi.mock('web-push', () => ({ default: webpush, ...webpush }))
@@ -20,6 +20,20 @@ const env = { NODE_ENV: 'test', VAPID_PUBLIC_KEY: PUBLIC_KEY, VAPID_PRIVATE_KEY:
 const endpoint = (n: number) => `https://fcm.googleapis.com/fcm/send/test-${n}`
 const subscription = (n: number, auth = 'auth-1') => ({ endpoint: endpoint(n), keys: { p256dh: 'p256dh-1', auth } })
 const statusError = (statusCode: number) => Object.assign(new Error(`push service said ${statusCode}`), { statusCode })
+
+describe('vapidSubject', () => {
+  it('uses the site itself over https, where Apple accepts it', () => {
+    expect(vapidSubject({ PUBLIC_URL: 'https://tasks.example.ru/app' })).toBe('https://tasks.example.ru')
+  })
+
+  it('keeps an explicit VAPID_SUBJECT', () => {
+    expect(vapidSubject({ VAPID_SUBJECT: 'mailto:it@example.ru', PUBLIC_URL: 'https://tasks.example.ru' })).toBe('mailto:it@example.ru')
+  })
+
+  it('falls back to a real-looking mailto for local http', () => {
+    expect(vapidSubject({ PUBLIC_URL: 'http://localhost:5173' })).toBe('mailto:admin@example.com')
+  })
+})
 
 describe('isAllowedEndpoint', () => {
   it.each([
@@ -115,7 +129,8 @@ describe.skipIf(!TEST_DATABASE_URL)('push API', { timeout: 20_000 }, () => {
   it('returns the public key, or null when push is not configured', async () => {
     expect((await call('alpha', 'GET', '/api/push/public-key')).json()).toEqual({ publicKey: PUBLIC_KEY })
     expect((await call('alpha', 'GET', '/api/push/public-key', undefined, bare)).json()).toEqual({ publicKey: null })
-    expect(vapidCalls).toEqual([['mailto:admin@car-city.local', PUBLIC_KEY, 'private-key-for-tests']])
+    // PUBLIC_URL is the local http default here, so the contact falls back to a mailto (see vapidSubject).
+    expect(vapidCalls).toEqual([['mailto:admin@example.com', PUBLIC_KEY, 'private-key-for-tests']])
   })
 
   it('upserts a subscription by endpoint and hands it over to whoever subscribes last', async () => {

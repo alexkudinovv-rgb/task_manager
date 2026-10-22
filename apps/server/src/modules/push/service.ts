@@ -39,12 +39,24 @@ export function isPushConfigured(config: Config): boolean {
 
 let vapidFor: string | null = null
 
+/**
+ * The VAPID contact: VAPID_SUBJECT, else the site itself when it is served over https. Apple's push
+ * service answers 403 BadJwtToken to a contact it cannot reach, such as mailto:…@car-city.local.
+ */
+export function vapidSubject(config: Pick<Config, 'VAPID_SUBJECT' | 'PUBLIC_URL'>): string {
+  if (config.VAPID_SUBJECT) return config.VAPID_SUBJECT
+  const site = new URL(config.PUBLIC_URL)
+  // Local development: no public address; Apple devices are not expected to subscribe there.
+  return site.protocol === 'https:' ? site.origin : 'mailto:admin@example.com'
+}
+
 /** Sets the VAPID details once per key set; false when push is not configured. */
 export function ensureVapid(config: Config): boolean {
   if (!isPushConfigured(config)) return false
-  const key = `${config.VAPID_SUBJECT}\n${config.VAPID_PUBLIC_KEY}\n${config.VAPID_PRIVATE_KEY}`
+  const subject = vapidSubject(config)
+  const key = `${subject}\n${config.VAPID_PUBLIC_KEY}\n${config.VAPID_PRIVATE_KEY}`
   if (vapidFor !== key) {
-    webpush.setVapidDetails(config.VAPID_SUBJECT, config.VAPID_PUBLIC_KEY!, config.VAPID_PRIVATE_KEY!)
+    webpush.setVapidDetails(subject, config.VAPID_PUBLIC_KEY!, config.VAPID_PRIVATE_KEY!)
     vapidFor = key
   }
   return true

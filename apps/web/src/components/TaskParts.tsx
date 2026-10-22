@@ -14,15 +14,13 @@ export function StatusTag({ view }: { view: TaskView }) {
   return <span className={`tag tone-${STATUS_TONE[status]}`}>{TASK_STATUS_LABELS[status]}</span>
 }
 
-/** Priority, overdue, cancelled and document marks; «Средний» is the default and stays silent. */
+/** Priority (every level, so «Средний» is not mistaken for «no priority»), overdue, cancelled and document marks. */
 export function TaskFlags({ view, withCancelled = true }: { view: TaskView; withCancelled?: boolean }) {
   const { task } = view
   const done = task.status === 'done'
-  const quietPriority = task.priority === 'high' || task.priority === 'low'
   return (
     <>
-      {view.hot && <span className="tag tag-hot">{PRIORITY_LABELS.hot}</span>}
-      {quietPriority && <span className="tag">{PRIORITY_LABELS[task.priority]}</span>}
+      {view.hot ? <span className="tag tag-hot">{PRIORITY_LABELS.hot}</span> : <span className="tag">{PRIORITY_LABELS[task.priority]}</span>}
       {view.overdue && <span className="tag tag-overdue">Просрочено</span>}
       {withCancelled && done && task.cancelled && <span className="tag tag-cancelled">Отменена</span>}
       {task.requiresDocument && !done && <span className="tag tag-doc">Нужен документ</span>}

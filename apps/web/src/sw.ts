@@ -86,7 +86,7 @@ self.addEventListener('push', (event) => {
   const payload = readPayload(event.data)
   const options: NotificationOptions & { renotify?: boolean } = {
     body: payload.body,
-    icon: new URL('icons/icon-192.png', SCOPE).href,
+    icon: new URL(`${import.meta.env.VITE_ICON_DIR ?? 'icons'}/icon-192.png`, SCOPE).href,
     badge: new URL('icons/badge-96.png', SCOPE).href,
     lang: 'ru',
     data: { url: appUrl(payload.url) },

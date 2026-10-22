@@ -23,6 +23,8 @@ class LiveConnection {
   private idleTimer: number | undefined
   private attempt = 0
   private everOpened = false
+  /** A socket failed before any opened: the app started offline and showed cached data. */
+  private failedBeforeOpen = false
   connected = false
 
   subscribe(listener: Listener): () => void {
@@ -66,7 +68,8 @@ class LiveConnection {
     const socket = new WebSocket(url)
     this.socket = socket
     socket.onopen = () => {
-      const reconnected = this.everOpened
+      // Started offline counts too: what is on screen came from the cache and must be refetched.
+      const reconnected = this.everOpened || this.failedBeforeOpen
       this.everOpened = true
       this.attempt = 0
       this.setConnected(true, reconnected)
@@ -83,6 +86,7 @@ class LiveConnection {
     socket.onclose = () => {
       if (this.socket !== socket) return
       this.socket = null
+      if (!this.everOpened) this.failedBeforeOpen = true
       this.setConnected(false, false)
       if (this.listeners.size > 0) this.scheduleRetry()
     }

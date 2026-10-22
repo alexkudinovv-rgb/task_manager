@@ -31,6 +31,12 @@ export interface PushState {
 }
 
 const SW_WAIT_MS = 8000
+const SUBSCRIBE_WAIT_MS = 20_000
+
+const PERMISSION_HINT =
+  'Разрешите уведомления в запросе браузера. Если запроса не видно, нажмите на значок колокольчика или замка в адресной строке.'
+const SUBSCRIBE_TIMEOUT_MESSAGE =
+  'Браузер не дождался ответа от своего сервиса уведомлений (у Chrome это серверы Google). Попробуйте ещё раз позже или в другом браузере, например в Edge или Firefox.'
 
 export function isIos(): boolean {
   const ua = navigator.userAgent
@@ -129,10 +135,12 @@ export function usePush(): PushState {
     const current = ctx.current
     if (!current) return
     setBusy(true)
-    setMessage(null)
+    // Chrome may show the request only as a small icon in the address bar, so say where to look.
+    setMessage(Notification.permission === 'granted' ? null : PERMISSION_HINT)
     try {
       // First await in the click handler: iOS only asks inside a user gesture.
       const permission = await Notification.requestPermission()
+      setMessage(null)
       if (permission === 'denied') {
         setStatus('denied')
         return
@@ -141,10 +149,18 @@ export function usePush(): PushState {
         setMessage('Чтобы получать уведомления, разрешите их в запросе браузера.')
         return
       }
-      const sub = await current.registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: base64UrlToBytes(current.publicKey),
-      })
+      // The browser registers with its own push service (Google's for Chrome); that call may never return.
+      const sub = await Promise.race([
+        current.registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: base64UrlToBytes(current.publicKey),
+        }),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), SUBSCRIBE_WAIT_MS)),
+      ])
+      if (!sub) {
+        setMessage(SUBSCRIBE_TIMEOUT_MESSAGE)
+        return
+      }
       await pushApi.subscribe(toInput(sub))
       setStatus('on')
     } catch (error) {

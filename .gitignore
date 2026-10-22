@@ -8,6 +8,8 @@ apps/server/storage/
 
 # Логотип компании: не публикуем в репозитории
 /logo.svg
+# Иконки PWA из логотипа (npm run icons -w apps/web)
+apps/web/public/brand/
 
 # Исходники дизайна — большие файлы, в публичный репозиторий не кладём
 *.pdf
