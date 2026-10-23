@@ -3,5 +3,9 @@
 .git
 .github
 **/.env
+**/.env.*
+!**/.env.example
+**/storage
+deploy
 *.pdf
 Car City — варианты таск-трекера.html
